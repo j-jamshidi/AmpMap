@@ -1,2 +1,2 @@
-## QC and phasing for ONT amplicon sequencing
+## QC and phasing for ONT _amplicon_ sequencing
 
