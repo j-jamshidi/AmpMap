@@ -50,6 +50,26 @@ do
         echo -e "${Coordinate}" | tr ':' '\t' | sed 's/-/\t/g' > ${workdir}/${Barcode}/${Episode}_coordinate.bed
 
     python /EBSDataDrive/ONT/script/phasing_automation_basecalling.py ${workdir}/${Barcode}/${Episode}.bam ${workdir}/${Barcode}/${Episode}.vcf
+    
+    
+	# HapCUT2 for phasing
+          /EBSDataDrive/ONT/HapCUT2-1.3.4/build/extractHAIRS \
+             --ont 1 \
+             --bam ${workdir}/${Barcode}/${Episode}.bam \
+             --VCF ${workdir}/${Barcode}/${Episode}.vcf \
+             --out ${workdir}/${Barcode}/fragment_${Episode} \
+             --indels 1 \
+             --ref /EFSGaiaDataDrive/ref/ONT/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+
+        /EBSDataDrive/ONT/HapCUT2-1.3.4/build/HAPCUT2 \
+             --fragments ${workdir}/${Barcode}/fragment_${Episode} \
+             --VCF ${workdir}/${Barcode}/${Episode}.vcf \
+             --output ${workdir}/${Barcode}/hap2cut_${Episode}
+             
+         echo "" >> ${workdir}/${Barcode}/${Episode}_report.txt    
+         echo "-----HapCUT2-----" >> ${workdir}/${Barcode}/${Episode}_report.txt
+         grep -v '^##' ${workdir}/${Barcode}/hap2cut_${Episode}.phased.VCF >> ${workdir}/${Barcode}/${Episode}_report.txt
+    
 	mv ${workdir}/${Barcode}/variant_calling_output/${Episode}.wf_snp.vcf.gz* ${workdir}/${Barcode}/
 	rm -rf ${workdir}/${Barcode}/work
 	rm ${workdir}/${Barcode}/clean-span-hq.bam*
