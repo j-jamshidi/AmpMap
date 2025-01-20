@@ -1,1 +1,2 @@
-# ONT_amplicon_phase
+## QC and phasing for ONT amplicon sequencing
+
