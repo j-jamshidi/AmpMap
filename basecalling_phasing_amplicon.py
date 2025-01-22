@@ -479,7 +479,7 @@ def validate_variants(input_bam, variants):
             )
         
         # Check allele balance
-        if ref_percentage > 90 or alt_percentage > 90:
+        if ref_percentage > 95 or alt_percentage > 95:
             # Severe skew - error
             errors.append(
                 f"Variant at position {variant.pos} appears to be homozygous:\n"
