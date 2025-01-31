@@ -84,7 +84,7 @@ def perform_qc_analysis(bam_file, bed_file):
             read_identities.append(identity)
             
             # Store reads that pass QC criteria
-            if (read.query_length >= 500 and 
+            if (read.query_length >= 1000 and 
                 read.mapping_quality >= 20 and 
                 identity >= 0.8 and
                 (not read.query_qualities or 
