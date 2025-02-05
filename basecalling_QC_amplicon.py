@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import sys
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 def calculate_quality_stats(qualities):
     """Calculate mean quality and percentage of bases above Q10"""
@@ -30,6 +30,113 @@ def calculate_depth_stats(bam, region):
             'max': max(depths)
         }
     return None
+
+def compare_variants(dummy_vcf: str, variant_calling_vcf: str) -> list:
+    """
+    Compare variants between dummy VCF and variant calling VCF.
+    
+    Args:
+        dummy_vcf (str): Path to the dummy VCF file
+        variant_calling_vcf (str): Path to the variant calling VCF file
+    
+    Returns:
+        List of variants found in both files, with details about matching status
+    """
+    # Read dummy VCF variants
+    dummy_variants = []
+    with open(dummy_vcf, 'r') as f:
+        for line in f:
+            if not line.startswith('#'):
+                parts = line.strip().split('\t')
+                if len(parts) >= 5:
+                    chrom, pos, _, ref, alt = parts[0], int(parts[1]), parts[2], parts[3], parts[4]
+                    dummy_variants.append((chrom, pos, ref, alt))
+                else:
+                    print(f"Skipping malformed line in dummy VCF: {line.strip()}")
+
+    # Read variant calling VCF variants
+    variant_calling_variants = []
+    try:
+        vcf = pysam.VariantFile(variant_calling_vcf)
+        for record in vcf.fetch():
+            # Only add variants with valid alternate alleles (not "." or None)
+            if record.alts and record.alts[0] and record.alts[0] != ".":
+                variant_calling_variants.append((record.chrom, record.pos, record.ref, record.alts[0]))
+        
+        print(f"Number of variants called from the amplicon: {len(variant_calling_variants)}")
+    except Exception as e:
+        print(f"Error reading variant calling VCF: {e}")
+        return []
+
+    # Compare variants
+    matched_variants = []
+    for dummy_var in dummy_variants:
+        found = False
+        for vc_var in variant_calling_variants:
+            if (dummy_var[0] == vc_var[0] and  # chromosome
+                dummy_var[1] == vc_var[1] and   # position
+                dummy_var[2] == vc_var[2] and   # reference allele
+                dummy_var[3] == vc_var[3]):     # alternate allele
+                found = True
+                matched_variants.append(dummy_var)
+                break
+        
+        if not found:
+            matched_variants.append(None)
+    
+    return matched_variants
+
+def write_variant_comparison_results(report_file, dummy_vcf, variant_calling_vcf):
+    """
+    Write variant comparison results to the report file.
+    
+    Args:
+        report_file: File handle for the report
+        dummy_vcf (str): Path to the dummy VCF file
+        variant_calling_vcf (str): Path to the variant calling VCF file
+    """
+    # Ensure dummy VCF exists
+    if not Path(dummy_vcf).exists():
+        report_file.write(f"\nError: Dummy VCF file does not exist at {dummy_vcf}\n")
+        return
+    
+    # Ensure variant calling VCF exists
+    if not Path(variant_calling_vcf).exists():
+        report_file.write(f"\nError: Variant calling VCF file does not exist at {variant_calling_vcf}\n")
+        return
+
+    try:
+        matched_variants = compare_variants(dummy_vcf, variant_calling_vcf)
+        
+        report_file.write("=== Variant Calling ===")
+        
+        report_file.write("\nUser provided variant:\n")
+        # Read dummy VCF variants and show only essential columns
+        with open(dummy_vcf, 'r') as dummy_f:
+            for line in dummy_f:
+                if not line.startswith('#'):
+                    parts = line.strip().split('\t')
+                    if len(parts) >= 5:
+                        chrom, pos, _, ref, alt = parts[0], parts[1], parts[2], parts[3], parts[4]
+                        report_file.write(f"{chrom}\t{pos}\t{ref}\t{alt}\n")
+        
+        report_file.write("\nVariants called from the amplicon by Clair3:\n")
+        # Read variant calling VCF variants
+        vcf = pysam.VariantFile(variant_calling_vcf)
+        for record in vcf.fetch():
+            # Only write variants with valid alternate alleles
+            if record.alts and record.alts[0] and record.alts[0] != ".":
+                report_file.write(f"{record.chrom}\t{record.pos}\t{record.ref}\t{record.alts[0]}\n")
+        
+        report_file.write("\nVariant Matching:\n")
+        for i, variant in enumerate(matched_variants, 1):
+            if variant:
+                report_file.write(f"Variant {i}: {variant[0]} {variant[1]} {variant[2]} > {variant[3]} - FOUND\n")
+            else:
+                report_file.write(f"Variant {i}: NOT FOUND in variant calling VCF\n")
+        
+    except Exception as e:
+        report_file.write(f"\nError during variant comparison: {str(e)}\n")
 
 def perform_qc_analysis(bam_file, bed_file):
     """
@@ -95,10 +202,19 @@ def perform_qc_analysis(bam_file, bed_file):
         
         # Write QC report
         with open(report_file, 'w') as report:
-            report.write(f"Quality Control Report for {bam_path.stem}\n")
+            report.write(f"Report for {bam_path.stem}\n")
             report.write("=" * 50 + "\n")
             
-            report.write(f"Basic Statistics:\n")
+            # Check for variant calling VCF
+            episode = bam_path.stem
+            variant_calling_vcf = bam_path.parent / f"{episode}.wf_snp.vcf.gz"
+            dummy_vcf = bam_path.parent / f"{episode}.vcf"
+            
+            # Add variant comparison results if files exist
+            if dummy_vcf.exists() and variant_calling_vcf.exists():
+                write_variant_comparison_results(report, str(dummy_vcf), str(variant_calling_vcf))
+            
+            report.write(f"\n===Quality control report===\n")
             report.write(f"Amplicon region: {chrom}:{start}-{end}\n")
             report.write(f"Amplicon length: {amplicon_length:,} bp\n")
             report.write(f"Total reads: {total_reads}\n")
@@ -132,13 +248,11 @@ def perform_qc_analysis(bam_file, bed_file):
             
             report.write(f"Strand Distribution:\n")
             report.write(f"Forward: {strand_counts['forward']} ({strand_counts['forward']/total_reads*100:.1f}%)\n")
-            report.write(f"Reverse: {strand_counts['reverse']} ({strand_counts['reverse']/total_reads*100:.1f}%)\n\n")
+            report.write(f"Reverse: {strand_counts['reverse']} ({strand_counts['reverse']/total_reads*100:.1f}%)\n")
             
-
-            
-            # Write passing reads to output BAM file
-            for read in passing_reads:
-                out_bam.write(read)
+        # Write passing reads to output BAM file
+        for read in passing_reads:
+            out_bam.write(read)
             
         print(f"Report has been saved to: {report_file}")
         
