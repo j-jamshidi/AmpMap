@@ -199,11 +199,31 @@ def perform_qc_analysis(bam_file, bed_file):
                 passing_reads.append(read)
         
         total_reads = len(read_lengths)
+        passing_qc_reads = len(passing_reads)
+        min_depth = depth_stats['min'] if depth_stats else 0
         
         # Write QC report
         with open(report_file, 'w') as report:
             report.write(f"Report for {bam_path.stem}\n")
-            report.write("=" * 50 + "\n")
+            report.write("-" * 30 + "\n")
+            
+            # Add amplicon region, length, and passing QC reads to the top
+            report.write(f"Amplicon region: {chrom}:{start}-{end}\n")
+            report.write(f"Amplicon length: {amplicon_length:,} bp\n")
+            report.write(f"Total reads: {total_reads}\n")
+            report.write(f"Passing QC reads: {passing_qc_reads} ({passing_qc_reads/total_reads*100:.2f}%)\n")
+            
+            # Add QC check messages
+            if passing_qc_reads > 50 and min_depth > 50:
+                report.write("\n**QC PASSED (>50 HQ reads and minimum depth >50x)**\n")
+            elif passing_qc_reads > 50 and min_depth < 50:
+                report.write("\n**QC FAILED (Minimum depth <50x)**\n")
+            elif passing_qc_reads < 50 and min_depth > 50:
+                report.write("\n**QC FAILED (Passing QC reads <50)**\n")
+            else:
+                report.write("\n**QC FAILED (<50 HQ reads and minimum depth <50x)**\n")
+            
+            report.write("\n")
             
             # Check for variant calling VCF
             episode = bam_path.stem
@@ -214,17 +234,13 @@ def perform_qc_analysis(bam_file, bed_file):
             if dummy_vcf.exists() and variant_calling_vcf.exists():
                 write_variant_comparison_results(report, str(dummy_vcf), str(variant_calling_vcf))
             
-            report.write(f"\n===Quality control report===\n")
-            report.write(f"Amplicon region: {chrom}:{start}-{end}\n")
-            report.write(f"Amplicon length: {amplicon_length:,} bp\n")
-            report.write(f"Total reads: {total_reads}\n")
-            report.write(f"Passing QC reads: {len(passing_reads)} ({len(passing_reads)/total_reads*100:.2f}%)\n\n")
+            report.write(f"\n==Quality control details==\n")
             
             if depth_stats:
                report.write(f"Depth Statistics:\n")
-               report.write(f"Median depth: {depth_stats['median']:.1f}X\n")
-               report.write(f"Minimum depth: {depth_stats['min']}X\n")
-               report.write(f"Maximum depth: {depth_stats['max']}X\n")
+               report.write(f"Median depth: {depth_stats['median']:.0f}X\n")
+               report.write(f"Minimum depth: {depth_stats['min']:.0f}X\n")
+               report.write(f"Maximum depth: {depth_stats['max']:.0f}X\n")
             
             report.write(f"\nRead Length Distribution:\n")
             report.write(f"Median length: {np.median(read_lengths):.0f}\n")
@@ -232,23 +248,23 @@ def perform_qc_analysis(bam_file, bed_file):
             report.write(f"Length N50: {calculate_n50(read_lengths):.0f}\n\n")
             
             report.write(f"Mapping Quality:\n")
-            report.write(f"Mean MAPQ: {np.mean(mapping_quals):.1f}\n")
+            report.write(f"Mean MAPQ: {np.mean(mapping_quals):.0f}\n")
             report.write(f"Reads with MAPQ≥20: {sum(q >= 20 for q in mapping_quals)} ")
-            report.write(f"({sum(q >= 20 for q in mapping_quals)/total_reads*100:.1f}%)\n\n")
+            report.write(f"({sum(q >= 20 for q in mapping_quals)/total_reads*100:.0f}%)\n\n")
             
             if base_qualities:
                 report.write(f"Base Quality:\n")
-                report.write(f"Mean base quality: {np.mean(base_qualities):.1f}\n")
-                report.write(f"Median base quality: {np.median(base_qualities):.1f}\n\n")
+                report.write(f"Mean base quality: {np.mean(base_qualities):.0f}\n")
+                report.write(f"Median base quality: {np.median(base_qualities):.0f}\n\n")
             
             report.write(f"Alignment Statistics:\n")
-            report.write(f"Mean identity: {np.mean(read_identities)*100:.1f}%\n")
+            report.write(f"Mean identity: {np.mean(read_identities)*100:.0f}%\n")
             report.write(f"Reads ≥80% identity: {sum(i >= 0.8 for i in read_identities)} ")
-            report.write(f"({sum(i >= 0.8 for i in read_identities)/total_reads*100:.1f}%)\n\n")
+            report.write(f"({sum(i >= 0.8 for i in read_identities)/total_reads*100:.0f}%)\n\n")
             
             report.write(f"Strand Distribution:\n")
-            report.write(f"Forward: {strand_counts['forward']} ({strand_counts['forward']/total_reads*100:.1f}%)\n")
-            report.write(f"Reverse: {strand_counts['reverse']} ({strand_counts['reverse']/total_reads*100:.1f}%)\n")
+            report.write(f"Forward: {strand_counts['forward']} ({strand_counts['forward']/total_reads*100:.0f}%)\n")
+            report.write(f"Reverse: {strand_counts['reverse']} ({strand_counts['reverse']/total_reads*100:.0f}%)\n")
             
         # Write passing reads to output BAM file
         for read in passing_reads:
