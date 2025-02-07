@@ -15,16 +15,6 @@ from pathlib import Path
 REFERENCE_FASTA = "/EFSGaiaDataDrive/ref/ONT/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna"
 
 def compare_variants(dummy_vcf: str, variant_calling_vcf: str) -> List[Tuple[str, int, str, str]]:
-    """
-    Compare variants between dummy VCF and variant calling VCF.
-    
-    Args:
-        dummy_vcf (str): Path to the dummy VCF file
-        variant_calling_vcf (str): Path to the variant calling VCF file
-    
-    Returns:
-        List of variants found in both files, with details about matching status
-    """
 
     # Read dummy VCF variants
     dummy_variants = []
@@ -71,14 +61,6 @@ def compare_variants(dummy_vcf: str, variant_calling_vcf: str) -> List[Tuple[str
     return matched_variants
 
 def write_variant_comparison_results(dummy_vcf: str, variant_calling_vcf: str, output_file: str):
-    """
-    Write variant comparison results to the output file.
-    
-    Args:
-        dummy_vcf (str): Path to the dummy VCF file
-        variant_calling_vcf (str): Path to the variant calling VCF file
-        output_file (str): Path to the output text file
-    """
     # Ensure dummy VCF exists
     if not os.path.exists(dummy_vcf):
         print(f"Error: Dummy VCF file does not exist at {dummy_vcf}")
@@ -92,21 +74,30 @@ def write_variant_comparison_results(dummy_vcf: str, variant_calling_vcf: str, o
     try:
         matched_variants = compare_variants(dummy_vcf, variant_calling_vcf)
         
-        # Append to the existing output file
-        with open(output_file, 'a') as f:
-            f.write("\n=== Variant calling report ===\n")
-            
-            f.write("User provided VCF variants (to be phased):\n")
-            # Read dummy VCF variants and show only essential columns
+        with open(output_file, 'a') as f:  # Changed to append mode
+
+            f.write("Variants to be phased:\n")
+            # Read dummy VCF variants and store them
+            variants = []
+            dummy_vcf_content = []
             with open(dummy_vcf, 'r') as dummy_f:
                 for line in dummy_f:
                     if not line.startswith('#'):
                         parts = line.strip().split('\t')
                         if len(parts) >= 5:
                             chrom, pos, _, ref, alt = parts[0], parts[1], parts[2], parts[3], parts[4]
-                            f.write(f"{chrom}\t{pos}\t{ref}\t{alt}\n")
+                            variants.append((chrom, int(pos), ref, alt))
+                            dummy_vcf_content.append(f"{chrom}\t{pos}\t{ref}\t{alt}\n")
             
-            f.write("\nVariants called from the amplicon by Clair3:\n")
+            # Write the variants and distance information
+            for line in dummy_vcf_content:
+                f.write(line)
+            
+            if len(variants) >= 2:
+                f.write(f"Distance between the variants is {variants[1][1] - variants[0][1]:,} bp\n")
+
+            f.write("\n===Variant Calling===\n")           
+            f.write("Variants called from the amplicon by Clair3:\n")
             # Read variant calling VCF variants
             vcf = pysam.VariantFile(variant_calling_vcf)
             for record in vcf.fetch():
@@ -129,7 +120,6 @@ def write_variant_comparison_results(dummy_vcf: str, variant_calling_vcf: str, o
         print(f"Error during variant comparison: {e}")
         import traceback
         traceback.print_exc()
-                
 
 def normalize_allele(allele: str) -> str:
     """Normalize allele to uppercase and replace empty alleles with <DEL>."""
@@ -563,18 +553,13 @@ def quality_control(input_bam, vcf_file, output_bam):
     input_bam_file.close()
     output_bam_file.close()
 
-    print("Variants to be phased:")
-    print(f"Variant one: {var1.chrom} {var1.pos} {var1.ref} {var1.alts[0]}")
-    print(f"Variant two: {var2.chrom} {var2.pos} {var2.ref} {var2.alts[0]}")
-    print(f"Distance between the variants is {var2.pos - var1.pos} bp")
-
-    print(f"\nTotal reads: {total_reads}")
+    print(f"Total reads: {total_reads}")
     print(f"Spanning reads: {spanning_reads} ({spanning_reads/total_reads*100:.2f}%)")
     print(f"Clean spanning reads: {clean_spanning_reads} ({clean_spanning_reads/spanning_reads*100:.2f}% of spanning reads)")
     print(f"High quality spanning reads (MAPQ >= 20): {high_quality_reads} ({high_quality_reads/clean_spanning_reads*100:.2f}% of clean spanning reads)")
 
     if high_quality_reads > 50:
-        print("\nQC PASSED (>50 HQ spanning reads)")
+        print("\n*QC PASSED (>50 high quality spanning reads)*")
     else:
         print("****WARNING!**** The number of passed reads are below QC. Proceed with caution!")
 
@@ -615,7 +600,7 @@ def analyze_reads(bam_file, vcf_file):
     trans_reads = ref_alt_reads + alt_ref_reads
     cis_percentage = cis_reads / total_reads * 100 if total_reads > 0 else 0
     trans_percentage = trans_reads / total_reads * 100 if total_reads > 0 else 0
-    print("\n=== Result ===\n")
+    print("\n=== Result ===")
     print(f"Total high quality spanning reads: {total_reads}")
     print("\nDetailed categorisation of reads:")
     print(f"Reads with ref allele for both variants (Cis): {ref_reads} ({ref_reads/total_reads*100:.2f}%)")
@@ -674,6 +659,21 @@ def main():
     output_bam = bam_file.removesuffix('.bam') + "_phased.bam"
     output_txt = bam_file.removesuffix('.bam') + "_report.txt"
 
+        # Get BED file path from BAM file path 
+    bed_file = bam_file.removesuffix('.bam') + '_coordinate.bed'
+    
+    # Read amplicon coordinates from BED file
+    try:
+        with open(bed_file, 'r') as bed:
+            line = bed.readline().strip()
+            chrom, start, end = line.split()[:3]
+            start, end = int(start), int(end)
+            amplicon_length = end - start
+            region = (chrom, start, end)
+    except FileNotFoundError:
+        print(f"Error: BED file '{bed_file}' not found")
+        sys.exit(1)
+
     with open(output_txt, 'a') as output_file:
         original_stdout = sys.stdout
         original_stderr = sys.stderr
@@ -682,6 +682,13 @@ def main():
 
         try:
             dummy_vcf = vcf_file
+            
+            # Write amplicon_length and region at the top of the report
+            with open(output_txt, 'w') as output_file:  # Use 'w' mode to start fresh
+                print(f"Report for: {episode}", file=output_file)
+                print(f"{'-'*30}", file=output_file)
+                print(f"Amplicon region: {chrom}:{start}-{end}", file=output_file)
+                print(f"Amplicon length: {amplicon_length:,} bp", file=output_file)
             
             # Look for the variant calling VCF
             variant_calling_vcf = os.path.join(Path(bam_file).parent._str, f"{episode}.wf_snp.vcf.gz")
