@@ -88,6 +88,16 @@ def write_variant_comparison_results(dummy_vcf: str, variant_calling_vcf: str, o
                             chrom, pos, _, ref, alt = parts[0], parts[1], parts[2], parts[3], parts[4]
                             variants.append((chrom, int(pos), ref, alt))
                             dummy_vcf_content.append(f"{chrom}\t{pos}\t{ref}\t{alt}\n")
+
+            # Create a set of them for matching
+            dummy_variants_set = set()
+            with open(dummy_vcf, 'r') as dummy_f:
+                for line in dummy_f:
+                    if not line.startswith('#'):
+                        parts = line.strip().split('\t')
+                        if len(parts) >= 10:
+                            chrom, pos, _, ref, alt = parts[0], parts[1], parts[2], parts[3], parts[4]
+                            dummy_variants_set.add((chrom, int(pos), ref, alt))
             
             # Write the variants and distance information
             for line in dummy_vcf_content:
@@ -98,12 +108,21 @@ def write_variant_comparison_results(dummy_vcf: str, variant_calling_vcf: str, o
 
             f.write("\n===Variant Calling===\n")           
             f.write("Variants called from the amplicon by Clair3:\n")
+            f.write("CHROM\tPOS\tREF\tALT\tQUAL\tGT\n")
             # Read variant calling VCF variants
             vcf = pysam.VariantFile(variant_calling_vcf)
             for record in vcf.fetch():
-                # Only write variants with valid alternate alleles
                 if record.alts and record.alts[0] and record.alts[0] != ".":
-                    f.write(f"{record.chrom}\t{record.pos}\t{record.ref}\t{record.alts[0]}\n")
+                    qual = f"{record.qual:.1f}" if record.qual is not None else "."
+                    gt = record.samples[0]['GT']
+                    gt_str = "/".join(str(x) for x in gt) if gt is not None else "."
+                    
+                    # Check if this variant matches any in the dummy VCF
+                    is_matched = (record.chrom, record.pos, record.ref, record.alts[0]) in dummy_variants_set
+                    
+                    # Add ">" for matched variants
+                    indicator = "<-" if is_matched else " "
+                    f.write(f"{record.chrom}\t{record.pos}\t{record.ref}\t{record.alts[0]}\t{qual}\t{gt_str} {indicator} \n")
             
             f.write("\nVariant Matching Results:\n")
             for i, variant in enumerate(matched_variants, 1):
