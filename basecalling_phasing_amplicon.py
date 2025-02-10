@@ -512,7 +512,7 @@ def quality_control(input_bam, vcf_file, output_bam):
     
     print("\n=== Variant Validation ===")
     if variants_valid and not warnings:
-        print("Variants were validated successfully!")
+        print("Variants were validated successfully")
         print(f"Both variants show expected heterozygous patterns in the reads.")
     elif variants_valid and warnings:
         print("Variants were validated successfully but with warnings:")
@@ -561,7 +561,7 @@ def quality_control(input_bam, vcf_file, output_bam):
     if high_quality_reads > 50:
         print("\n*QC PASSED (>50 high quality spanning reads)*")
     else:
-        print("****WARNING!**** The number of passed reads are below QC. Proceed with caution!")
+        print("*QC FAILED (<50 high quality spanning reads)*")
 
     return high_quality_reads
 
