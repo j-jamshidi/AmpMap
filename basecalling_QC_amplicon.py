@@ -215,13 +215,13 @@ def perform_qc_analysis(bam_file, bed_file):
             
             # Add QC check messages
             if passing_qc_reads > 50 and min_depth > 50:
-                report.write("\n**QC PASSED (>50 HQ reads and minimum depth >50x)**\n")
+                report.write("\n*QC PASSED (>50 HQ reads and minimum depth >50x)*\n")
             elif passing_qc_reads > 50 and min_depth < 50:
-                report.write("\n**QC FAILED (Minimum depth <50x)**\n")
+                report.write("\n*QC FAILED (Minimum depth <50x)*\n")
             elif passing_qc_reads < 50 and min_depth > 50:
-                report.write("\n**QC FAILED (Passing QC reads <50)**\n")
+                report.write("\n*QC FAILED (HQ reads <50)*\n")
             else:
-                report.write("\n**QC FAILED (<50 HQ reads and minimum depth <50x)**\n")
+                report.write("\n*QC FAILED (<50 HQ reads and minimum depth <50x)*\n")
             
             report.write("\n")
             
