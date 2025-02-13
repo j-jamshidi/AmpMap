@@ -632,7 +632,7 @@ def analyze_reads(bam_file, vcf_file):
     if cis_percentage > trans_percentage:
         print(f"\nCounting the reads determined the phase as Cis \n\nChimeric reads percentage: {trans_percentage:.2f}% ")
     else:
-        print(f"Counting reads determined the phase as Trans \n\nChimeric reads percentage: {cis_percentage:.2f}% ")
+        print(f"\nCounting reads determined the phase as Trans \n\nChimeric reads percentage: {cis_percentage:.2f}% ")
 
     bam.close()
 
