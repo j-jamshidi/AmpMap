@@ -54,10 +54,10 @@ def get_samples(run_id):
             # Find all report files
             report_files = glob.glob(os.path.join(barcode_dir, '*_report.txt'))
             for report_file in report_files:
-                # Extract episode name from report filename
+                # Extract episode name from report filename and add barcode suffix
                 episode = os.path.basename(report_file).replace('_report.txt', '')
                 if episode:  # Only add if episode name is not empty
-                    samples.add(episode)
+                    samples.add(f"{episode}_b{i:02d}")
         
         return jsonify(sorted(list(samples)))
     except Exception as e:
@@ -70,17 +70,19 @@ def get_sample_report(run_id, sample_id):
         result_dir = os.path.join(BASE_DIR, run_id, 'result')
         report_content = None
         
-        # Search through barcode01 to barcode24
-        for i in range(1, 25):
-            barcode_dir = os.path.join(result_dir, f'barcode{i:02d}')
-            if not os.path.exists(barcode_dir):
-                continue
-                
-            report_path = os.path.join(barcode_dir, f'{sample_id}_report.txt')
-            if os.path.exists(report_path):
-                with open(report_path, 'r') as f:
-                    report_content = f.read()
-                break
+        # Extract the original sample name and barcode number
+        match = re.match(r"(.+)_b(\d{2})$", sample_id)
+        if not match:
+            return jsonify({'error': 'Invalid sample ID format'}), 400
+        
+        original_sample_id, barcode = match.groups()
+        
+        # Search through the specified barcode directory
+        barcode_dir = os.path.join(result_dir, f'barcode{barcode}')
+        report_path = os.path.join(barcode_dir, f'{original_sample_id}_report.txt')
+        if os.path.exists(report_path):
+            with open(report_path, 'r') as f:
+                report_content = f.read()
         
         if report_content is None:
             return jsonify({'error': 'Report not found'}), 404
@@ -96,9 +98,16 @@ def download_file(run_id, sample_id, file_type):
         result_dir = os.path.join(BASE_DIR, run_id, 'result')
         file_path = None
         
+        # Extract the original sample name and barcode number
+        match = re.match(r"(.+)_b(\d{2})$", sample_id)
+        if not match:
+            return jsonify({'error': 'Invalid sample ID format'}), 400
+        
+        original_sample_id, barcode = match.groups()
+        
         # Define file name based on type
         file_names = {
-            'xml': f'{sample_id}.xml',
+            'xml': f'{original_sample_id}.xml',
             'HapCUT2': f'HapCUT2.log',
             'WhatsHap': f'whatshap.log'
         }
@@ -108,16 +117,11 @@ def download_file(run_id, sample_id, file_type):
             
         file_name = file_names[file_type]
         
-        # Search through barcode01 to barcode24
-        for i in range(1, 25):
-            barcode_dir = os.path.join(result_dir, f'barcode{i:02d}')
-            if not os.path.exists(barcode_dir):
-                continue
-                
-            temp_path = os.path.join(barcode_dir, file_name)
-            if os.path.exists(temp_path):
-                file_path = temp_path
-                break
+        # Search through the specified barcode directory
+        barcode_dir = os.path.join(result_dir, f'barcode{barcode}')
+        temp_path = os.path.join(barcode_dir, file_name)
+        if os.path.exists(temp_path):
+            file_path = temp_path
         
         if file_path is None:
             return jsonify({'error': 'File not found'}), 404
@@ -127,4 +131,4 @@ def download_file(run_id, sample_id, file_type):
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

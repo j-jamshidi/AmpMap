@@ -81,12 +81,14 @@
             color: rgb(29, 130, 20);
         }
         .foldable-section {
-            cursor: pointer;
             margin-bottom: 10px;
+        }
+        .foldable-header {
+            cursor: pointer;
         }
         .foldable-content {
             display: block; /* Make all sections expanded by default */
-            margin-left: 20px;
+            margin-left: 10px;
         }
         #igvDiv {
             width: 100%;
@@ -253,7 +255,7 @@
                             if (index === 0) {
                                 return `<strong class="bold-blue" style="font-size: 1.2em;">${header}</strong><div>${content}</div>`;
                             } else {
-                                return `<div class="foldable-section"><strong class="bold-blue">${header}</strong><div class="foldable-content">${content}</div></div>`;
+                                return `<div class="foldable-section"><strong class="bold-blue foldable-header">${header}</strong><div class="foldable-content">${content}</div></div>`;
                             }
                         }).join('');
     
@@ -263,9 +265,9 @@
                         // Automatically switch to the sample report tab
                         $('.menu .item[data-tab="sample-report"]').tab('change tab', 'sample-report');
     
-                        // Add click event listener to foldable sections
-                        $('.foldable-section').click(function() {
-                            $(this).find('.foldable-content').toggle();
+                        // Add click event listener to foldable headers
+                        $('.foldable-header').click(function() {
+                            $(this).next('.foldable-content').toggle();
                         });
                     });
 
