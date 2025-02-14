@@ -213,9 +213,16 @@ process_samples() {
                 rm "${WORKDIR}/${Barcode}/fragment_${Episode}"
                 rm "${WORKDIR}/${Barcode}/clean-span-hq.bam"*
             fi
+
+	    # prepare data for the xml file
+            aws s3 cp ${WORKDIR}/${Barcode} s3://nswhp-gaia-poc-pl/ONT/${RUNID}/${Barcode}/ --recursive
+	    #
                 log "Done!\n"    
         }
     done < "${BASEDIR}/${RUNID}.info"
+
+    #generate xml files
+    bash /EBSDataDrive/ONT/script/get_xml.sh ${RUNID}
 }
 
 #===============================================================================
