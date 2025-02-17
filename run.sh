@@ -134,11 +134,14 @@ prepare_input_file() {
     tail -n +2 "${BASEDIR}/sample_sheet.csv" > "${BASEDIR}/temp.info"
 
     # Process the Barcode column to add leading zeros and 'barcode' prefix
+    # Convert Episode and EpisodeWES to uppercase
     awk -F',' 'BEGIN {OFS=","} {
         gsub(/[[:space:]]*$/, "", $0)
         if ($2 ~ /^[0-9]+$/) {
             $2 = sprintf("barcode%02d", $2)
         }
+        $3 = toupper($3)
+        $7 = toupper($7)
         print $0
     }' "${BASEDIR}/temp.info" > "${BASEDIR}/${RUNID}.info"
 
@@ -214,15 +217,19 @@ process_samples() {
                 rm "${WORKDIR}/${Barcode}/clean-span-hq.bam"*
             fi
 
-	    # prepare data for the xml file
-            aws s3 cp ${WORKDIR}/${Barcode} s3://nswhp-gaia-poc-pl/ONT/${RUNID}/${Barcode}/ --recursive
-	    #
-                log "Done!\n"    
+        # prepare data for the xml file
+            aws s3 cp ${WORKDIR}/${Barcode} s3://nswhp-gaia-poc-pl/ONT/${RUNID}/${Barcode}/ --recursive >/dev/null 2>&1
+            
+                log "Upload finished!"
+        
+               
         }
     done < "${BASEDIR}/${RUNID}.info"
 
     #generate xml files
     bash /EBSDataDrive/ONT/script/get_xml.sh ${RUNID}
+
+     log "Done!\n"  
 }
 
 #===============================================================================

@@ -27,9 +27,10 @@ while IFS=, read -r Batch Barcode Episode Coordinate Variant1 Variant2 EpisodeWE
 	OUTXML=${WORKDIR}/$Barcode/${Episode}.xml
 	if [ $EpisodeWES == NA ]; 
 		then cp ${BASEDIR}/solo_LR.xml ${OUTXML}; 
-	else 
-		wesrun=$(cat /EBSDataDrive/software/sample_ran.txt | grep $EpisodeWES | cut -f 6);
-		sid=$(cat /EBSDataDrive/software/sample_ran.txt | grep $EpisodeWES | cut -f 1); 
+	else
+	        cat /EBSDataDrive/software/sample_ran.txt /EBSDataDrive/software/sample_ran_CRE_BS.txt > /EBSDataDrive/software/sample_SR.txt	
+		wesrun=$(cat /EBSDataDrive/software/sample_SR.txt | grep $EpisodeWES | cut -f 6 | tr '[:lower:]' '[:upper:]');
+		sid=$(cat /EBSDataDrive/software/sample_SR.txt | grep $EpisodeWES | cut -f 1 | tr '[:lower:]' '[:upper:]'); 
 		if [ -z "$wesrun" ]; then cp ${BASEDIR}/solo_LR.xml ${OUTXML}; 
 		else 
 			cp ${BASEDIR}/solo_LR_SR.xml ${OUTXML};
