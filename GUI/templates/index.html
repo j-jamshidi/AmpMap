@@ -243,7 +243,7 @@
                             const content = section.slice(1).map(line => {
                                 if (line.startsWith('*')) {
                                     return line.includes('PASSED') ? `<span class="bold-green">${line}</span>` : `<span class="bold-red">${line}</span>`;
-                                } else if (line.startsWith('Counting the reads') || line.startsWith('WhatsHap') || line.startsWith('HapCUT2')) {
+                                } else if (line.startsWith('Counting') || line.startsWith('WhatsHap') || line.startsWith('HapCUT2')) {
                                     return line.replace(/(Cis|Trans)/g, '<strong>$1</strong>');
                                 } else if (line.endsWith('<-')) {
                                     return `<span class="green">${line}</span>`;

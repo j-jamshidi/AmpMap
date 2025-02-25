@@ -45,8 +45,8 @@ def get_samples(run_id):
         samples = set()  # Use set to avoid duplicates
         result_dir = os.path.join(BASE_DIR, run_id, 'result')
         
-        # Look through barcode01 to barcode24
-        for i in range(1, 25):
+        # Look through barcode01 to 92
+        for i in range(1, 92):
             barcode_dir = os.path.join(result_dir, f'barcode{i:02d}')
             if not os.path.exists(barcode_dir):
                 continue
