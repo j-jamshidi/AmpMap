@@ -42,7 +42,30 @@ while IFS=, read -r Batch Barcode Episode Coordinate Variant1 Variant2 EpisodeWE
 		fi; 
 	fi;
 	sed -i -e "s/C1_IID/$Episode/g" ${OUTXML};
+	raw2=$Variant2
+	if [[ "$Variant1" =~ chr ]] || [[ "$Variant2" =~ chr ]]; then
+		if [[ ! "$Variant2" =~ chr ]]; then
+			Variant2=$Variant1
+		fi
+		chr1=$(echo $Variant1 | cut -d ':' -f 1)
+		pos1=$(echo $Variant1 | cut -d ':' -f 2 | cut -d ' ' -f 1)
+		chr2=$(echo $Variant2 | cut -d ':' -f 1)
+		pos2=$(echo $Variant2 | cut -d ':' -f 2 | cut -d ' ' -f 1)
+		if [ "$chr1" != "$chr2" ]; then
+			echo "Variants are on different chromosomes."
+			exit 1
+		fi
+		if [ $pos1 -lt $pos2 ]; then
+			start=$((pos1 - 100))
+			end=$((pos2 + 100))
+		else
+			start=$((pos2 - 100))
+			end=$((pos1 + 100))
+		fi
+		Coordinate="${chr1}:${start}-${end}"
+	fi
 	sed -i -e "s/CHRSTARTEND/$Coordinate/g" ${OUTXML};
+	Variant2=$raw2
 	if [[ "$Variant2" =~ chr ]]; then
 		lrbam=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_phased.bam --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g');
 		lrbai=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_phased.bam.bai --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g');

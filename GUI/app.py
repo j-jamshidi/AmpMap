@@ -1,13 +1,59 @@
-# app.py
 from flask import Flask, render_template, jsonify, send_file, abort
 import os
 import glob
 import re
+import sqlite3
 
 app = Flask(__name__)
 
 # Base directory for all operations
 BASE_DIR = '/Users/javadjamshidi/Desktop/Runs'
+DB_PATH = '/Users/javadjamshidi/Desktop/ONT_amplicon_phase/GUI/amplicon_data.db'
+
+def init_db():
+    """Initialize the database."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS amplicon_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            run_id TEXT,
+            sample_id TEXT,
+            amplicon_size INTEGER,
+            total_reads INTEGER,
+            passing_qc_reads INTEGER
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def insert_amplicon_data(run_id, sample_id, amplicon_size, total_reads, passing_qc_reads):
+    """Insert amplicon data into the database."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO amplicon_data (run_id, sample_id, amplicon_size, total_reads, passing_qc_reads)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (run_id, sample_id, amplicon_size, total_reads, passing_qc_reads))
+    conn.commit()
+    conn.close()
+
+def parse_report_file(report_file, run_id, sample_id):
+    """Parse the report file and extract amplicon data."""
+    amplicon_size = 0
+    total_reads = 0
+    passing_qc_reads = 0
+
+    with open(report_file, 'r') as f:
+        for line in f:
+            if line.startswith("Amplicon length:"):
+                amplicon_size = int(line.split(":")[1].strip().split()[0].replace(',', ''))
+            elif line.startswith("Total reads:"):
+                total_reads = int(line.split(":")[1].strip().split()[0].replace(',', ''))
+            elif line.startswith("Passing QC reads:"):
+                passing_qc_reads = int(line.split(":")[1].strip().split()[0].replace(',', ''))
+
+    insert_amplicon_data(run_id, sample_id, amplicon_size, total_reads, passing_qc_reads)
 
 @app.route('/')
 def index():
@@ -46,7 +92,7 @@ def get_samples(run_id):
         result_dir = os.path.join(BASE_DIR, run_id, 'result')
         
         # Look through barcode01 to 92
-        for i in range(1, 92):
+        for i in range(1, 93):
             barcode_dir = os.path.join(result_dir, f'barcode{i:02d}')
             if not os.path.exists(barcode_dir):
                 continue
@@ -130,5 +176,19 @@ def download_file(run_id, sample_id, file_type):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/amplicon_data')
+def get_amplicon_data():
+    """Get amplicon data for visualization"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM amplicon_data')
+        data = cursor.fetchall()
+        conn.close()
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
+    init_db()
     app.run(debug=True, host='0.0.0.0', port=5001)

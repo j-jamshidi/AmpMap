@@ -7,6 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/igv@2.8.7/dist/igv.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/igv@2.8.7/dist/igv.min.css">
     <style>
@@ -94,6 +95,10 @@
             width: 100%;
             height: 500px;
         }
+        #ampliconChart {
+            width: 100%;
+            height: 500px;
+        }
     </style>
 </head>
 <body>
@@ -125,6 +130,7 @@
                 <a class="item" data-tab="sample-report">Sample Report</a>
                 <a class="item" data-tab="downloads">Downloads</a>
                 <a class="item" data-tab="igv-view">IGV View</a>
+                <a class="item" data-tab="amplicon-data">Amplicon Data</a>
             </div>
         </div>
         <div class="right-panel">
@@ -133,6 +139,7 @@
                 <a class="item" data-tab="sample-report">Sample Report</a>
                 <a class="item" data-tab="downloads">Downloads</a>
                 <a class="item" data-tab="igv-view">IGV View</a>
+                <a class="item" data-tab="amplicon-data">Amplicon Data</a>
             </div>
             
             <div class="ui bottom attached active tab segment" data-tab="run-report">
@@ -160,6 +167,10 @@
 
             <div class="ui bottom attached tab segment" data-tab="igv-view">
                 <div id="igvDiv"></div>
+            </div>
+
+            <div class="ui bottom attached tab segment" data-tab="amplicon-data">
+                <canvas id="ampliconChart"></canvas>
             </div>
         </div>
     </div>
@@ -297,6 +308,58 @@
                     }).fail(function() {
                         console.error("Failed to load XML URL");
                     });
+
+                    // Highlight selected sample in scatter plot
+                    $.get('/api/amplicon_data', function(data) {
+                        const ctx = document.getElementById('ampliconChart').getContext('2d');
+                        const chartData = {
+                            datasets: [{
+                                label: 'Amplicon Data',
+                                data: data.map(item => ({
+                                    x: item[2], // amplicon_size
+                                    y: item[3] > 0 ? item[3] : item[4], // total_high_quality_spanning_reads or passing_qc_reads
+                                    r: Math.log10(item[4]), // total_reads in log scale
+                                    sample: item[1], // sample_id
+                                    backgroundColor: item[1] === value ? 'rgba(0, 0, 139, 0.8)' : 'rgba(54, 162, 235, 0.6)', // dark blue for selected sample
+                                    borderColor: item[1] === value ? 'rgba(0, 0, 139, 1)' : 'rgba(54, 162, 235, 1)', // dark blue for selected sample
+                                    borderWidth: 1,
+                                    radius: item[1] === value ? 10 : 5 // 10% larger for selected sample
+                                }))
+                            }]
+                        };
+                        const chartOptions = {
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Amplicon Size'
+                                    }
+                                },
+                                y: {
+                                    type: 'logarithmic',
+                                    title: {
+                                        display: true,
+                                        text: 'Total High Quality Spanning Reads'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const data = context.raw;
+                                            return `Sample: ${data.sample}, Amplicon Size: ${data.x}, Total High Quality Spanning Reads: ${data.y}, Total Reads: ${Math.pow(10, data.r)}`;
+                                        }
+                                    }
+                                }
+                            }
+                        };
+                        new Chart(ctx, {
+                            type: 'bubble',
+                            data: chartData,
+                            options: chartOptions
+                        });
+                    });
                 }
             });
     
@@ -311,6 +374,57 @@
                 } else {
                     alert('Please select both a run and a sample first.');
                 }
+            });
+
+            // Load Amplicon Data and create scatter chart
+            $.get('/api/amplicon_data', function(data) {
+                const ctx = document.getElementById('ampliconChart').getContext('2d');
+                const chartData = {
+                    datasets: [{
+                        label: 'Amplicon Data',
+                        data: data.map(item => ({
+                            x: item[2], // amplicon_size
+                            y: item[3] > 0 ? item[3] : item[4], // total_high_quality_spanning_reads or passing_qc_reads
+                            r: Math.log10(item[4]), // total_reads in log scale
+                            sample: item[1] // sample_id
+                        })),
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                };
+                const chartOptions = {
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Amplicon Size'
+                            }
+                        },
+                        y: {
+                            type: 'logarithmic',
+                            title: {
+                                display: true,
+                                text: 'Total High Quality Spanning Reads'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const data = context.raw;
+                                    return `Sample: ${data.sample}, Amplicon Size: ${data.x}, Total High Quality Spanning Reads: ${data.y}, Total Reads: ${Math.pow(10, data.r)}`;
+                                }
+                            }
+                        }
+                    }
+                };
+                new Chart(ctx, {
+                    type: 'bubble',
+                    data: chartData,
+                    options: chartOptions
+                });
             });
         });
     </script>
