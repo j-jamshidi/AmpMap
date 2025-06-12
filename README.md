@@ -1,211 +1,190 @@
 # Amplicon Analysis Pipeline for Oxford Nanopore Sequencing
 
-This bioinformatics pipeline analyzes barcoded amplicon sequences from Oxford Nanopore Technology (ONT). [cite_start]It processes raw sequencing data to perform quality control, variant calling, and, if two variants are provided, haplotype phasing[cite: 1].
+This repository contains a bioinformatics pipeline designed for analyzing barcoded amplicon sequences generated from Oxford Nanopore Technology (ONT) data. The pipeline is capable of performing quality control, variant calling, and haplotype phasing, specifically tailored for scenarios involving one or two genetic variants of interest.
 
 ## Table of Contents
-- [What it does](#what-it-does)
-- [Prerequisites](#prerequisites)
-- [Input Files](#input-files)
-  - [Sample Sheet Format](#sample-sheet-format)
-- [How to Run](#how-to-run)
-- [Pipeline Workflow](#pipeline-workflow)
+- [Introduction](#introduction)
+- [Features](#features)
+- [How it Works](#how-it-works)
+    - [Configuration and Setup](#configuration-and-setup)
+    - [Input Data](#input-data)
+    - [Pipeline Steps](#pipeline-steps)
 - [Output Files](#output-files)
-- [Core Functionality Breakdown](#core-functionality-breakdown)
-  - [Quality Control (QC)](#quality-control-qc)
-  - [Variant Calling](#variant-calling)
-  - [Haplotype Phasing](#haplotype-phasing)
-- [Configuration](#configuration)
+- [Dependencies](#dependencies)
+- [Usage](#usage)
+- [Scripts Overview](#scripts-overview)
+- [License](#license)
+- [Contact](#contact)
 
----
+## Introduction
 
-## What it does
-* [cite_start]**Processes ONT amplicon sequencing data** from FASTQ to phased haplotypes[cite: 1].
-* [cite_start]**Performs detailed Quality Control (QC)** on raw sequences, assessing metrics like read depth, read length, mapping quality, and base quality[cite: 1].
-* [cite_start]**Calls variants using Clair3**, a highly accurate tool for ONT data[cite: 1].
-* [cite_start]**Phases specified variants** to determine if they are on the same chromosome (in *cis*) or on opposite chromosomes (in *trans*)[cite: 1].
-* [cite_start]**Uses WhatsHap and HapCUT2** for robust phasing analysis[cite: 1].
-* [cite_start]**Generates comprehensive QC and phasing reports** for each sample[cite: 1].
-* [cite_start]**Detects and reports chimeric reads** as part of the phasing analysis[cite: 1].
+Targeted sequencing of amplicons with Oxford Nanopore Technology allows for in-depth analysis of specific genomic regions. This pipeline automates the process of evaluating the quality of these reads, identifying genetic variants within the amplicon, and determining their phase (i.e., whether two variants are on the same chromosome - *cis* - or on different chromosomes - *trans*). The pipeline is flexible, supporting both single-variant localization/QC and two-variant phasing analyses.
 
----
+## Features
 
-## Prerequisites
-The pipeline relies on several bioinformatics tools and specific file paths that must be configured in the `run.sh` script.
+* **Automated Workflow:** Streamlines the analysis from raw BAMs to phased variant calls.
+* **Quality Control (QC):**
+    * Assesses general sequencing quality (read length, mapping quality, base quality, read identity).
+    * Calculates amplicon coverage depth statistics (median, mean, min, max).
+    * Filters reads based on user-defined quality thresholds for downstream analysis.
+    * Provides a comprehensive QC report.
+* **Variant Calling:** Utilizes Clair3 for accurate single nucleotide polymorphism (SNP) and indel calling.
+* **Haplotype Phasing:**
+    * **WhatsHap:** Employs WhatsHap for robust phasing of heterozygous variants.
+    * **HapCUT2:** Incorporates HapCUT2 for an alternative or confirmatory phasing approach.
+    * Determines and reports the *cis* or *trans* relationship between two specified variants.
+* **Chimeric Read Detection:** Identifies and reports reads that show discordant phasing patterns, indicating potential chimeric events.
+* **Flexible Variant Input:** Supports analysis for either one or two specified variants from a sample sheet.
+* **Scalability:** Designed to process multiple samples in batches.
 
-**Software/Tools:**
-* `samtools`
-* `Clair3`
-* `WhatsHap`
-* `HapCUT2`
-* `conda` (with a configured `ONT` environment)
-* `aws-cli` (for uploading results to S3)
-* `Python 3` with the following libraries:
-    * `pysam`
-    * `pandas`
-    * `numpy`
+## How it Works
 
-**Reference Files:**
-* A reference genome in FASTA format (e.g., `GCA_000001405.15_GRCh38_no_alt_analysis_set.fna`).
-* A pre-trained Clair3 model.
+The pipeline is orchestrated by a `run.sh` script, which integrates several Python scripts and external bioinformatics tools.
 
----
+### Configuration and Setup
 
-## Input Files
-The primary input for the pipeline is a `sample_sheet.csv` file located in a run-specific directory. The pipeline also requires pass `.bam` files for each barcode, which should be located in a `bam_pass` subdirectory.
+The `run.sh` script requires initial configuration of base directories, reference genome paths, and tool paths.
 
-/EBSDataDrive/ONT/Runs/
-└── [RUNID]/
-├── sample_sheet.csv
-└── bam_pass/
-├── barcode01/
-│ └── *.bam
-├── barcode02/
-│ └── *.bam
-└── ...
+* `RUNID`: Identifier for the current sequencing run.
+* `BASEDIR`: Root directory where raw BAM files and sample sheet are located.
+* `WORKDIR`: Directory for storing analysis results and intermediate files.
+* `REFERENCE_FASTA`: Path to the reference genome in FASTA format (e.g., GRCh38).
+* `CLAIR3_PATH`: Path to the Clair3 variant caller installation.
+* `HAPCUT2_PATH`: Path to the HapCUT2 installation.
+* `SCRIPT_PATH`: Path to the directory containing the pipeline's Python scripts.
 
+### Input Data
 
-- **[RUNID]/**: Folder name for the specific sequencing run.
-- **sample_sheet.csv**: Input sheet containing metadata, variant info, and amplicon coordinates.
-- **bam_pass/**: Directory with BAM files separated by barcode.
-  - **barcodeXX/**: Subfolder for each barcode containing one or more `.bam` files.
+The pipeline expects the following input files:
 
+* **Sample Sheet (`sample_sheet.csv`):** A CSV file detailing samples, barcodes, amplicon coordinates, and the variants of interest.
+    * `Batch`: Batch number.
+    * `Barcode`: Barcode identifier (e.g., `barcode01`).
+    * `Episode`: Unique identifier for the sample (e.g., `NA24385_FY2`).
+    * `Coordinate`: Genomic coordinates of the amplicon (e.g., `chr1:236010990-236033398`).
+    * `Variant1`: Details of the first variant (e.g., `chr1:236011853 T>C`). If no variant is provided, set to empty.
+    * `Variant2`: Details of the second variant (e.g., `chr1:236033263 A>G`). If only one variant is provided, set to empty.
+    * `EpisodeWES`: WES (Whole Exome Sequencing) episode identifier for the sample.
+* **Raw BAM Files:** Barcoded BAM files organized by barcode within `BASEDIR/bam_pass/`. Each barcode directory should contain BAM files from the sequencing run.
+* **Dummy VCF Template (`dummy.vcf`):** A template VCF file used to generate sample-specific VCFs based on the `sample_sheet.csv`. This template is located in `SCRIPT_PATH`.
 
-### Sample Sheet Format
-The `sample_sheet.csv` must contain a header and the columns are processed by the `run.sh` script.
+### Pipeline Steps
 
-| Column | Description | Example |
-|---|---|---|
-| `Batch` | The batch number for the run. | `7` |
-| `Barcode` | The barcode identifier. Can be with or without leading zeros. | `barcode01` or `1` |
-| `Episode` | A unique identifier for the sample. | `NA24385_FY2` |
-| `Coordinate`| The genomic region of the amplicon. | `chr1:236010990-236033398` |
-| `Variant1` | The first variant to analyze. Format: `chr:pos REF>ALT`. | `chr1:236011853 T>C` |
-| `Variant2` | The second variant for phasing. Leave blank if only doing QC. | `chr1:236033263 A>G` |
-| `EpisodeWES`| Corresponding episode identifier in WES data. | `NA24385` |
+The `run.sh` script iterates through each sample defined in `sample_sheet.csv` and performs the following operations:
 
----
+1.  **Prepare Input File (`prepare_input_file`):** Reads the `sample_sheet.csv`, formats barcode numbers (e.g., `barcode01`), converts `Episode` and `EpisodeWES` to uppercase, and creates a processed `.info` file.
+2.  **Create Sample Directory:** A dedicated directory is created for each barcode (`WORKDIR/barcodeXX`).
+3.  **Prepare VCF File (`prepare_vcf`):**
+    * Copies a `dummy.vcf` template to the sample's directory.
+    * Populates the template with the `Variant1` and `Variant2` information from the sample sheet.
+    * If only one variant is provided, the second variant line is removed from the VCF.
+    * The VCF is then sorted.
+4.  **Merge BAM Files (`merge_bam_files`):**
+    * Merges all BAM files associated with a specific barcode from `BASEDIR/bam_pass/barcodeXX/`.
+    * Sorts and indexes the merged BAM.
+    * Extracts reads specifically covering the amplicon `Coordinate` into a new BAM file (`${Episode}.bam`).
+    * Indexes the amplicon-specific BAM file.
+5.  **Create BED File:** Generates a BED file (`${Episode}_coordinate.bed`) containing the amplicon coordinates for use by downstream tools.
+6.  **Run Clair3 Variant Calling (`run_clair3`):**
+    * Executes Clair3 on the amplicon-specific BAM file and BED file against the reference genome.
+    * Clair3 performs variant calling and optionally integrates WhatsHap for initial phasing within its output.
+    * Intermediate Clair3 directories are removed.
+    * The Clair3 output VCF is copied and indexed as `${Episode}.wf_snp.vcf.gz`.
+7.  **Run HapCUT2 Phasing (`run_hapcut2`):**
+    * **Only if two variants are provided:**
+    * Extracts haplotype-informative reads from the BAM file and VCF using `extractHAIRS`.
+    * Runs `HAPCUT2` to perform phasing based on the extracted fragments.
+8.  **Final Analysis and Cleanup:**
+    * **Quality Control (Single Variant / No Variant):** If one or no variants are provided in the sample sheet, the `basecalling_QC_amplicon.py` script is executed. This script performs detailed quality control checks on the amplicon BAM and generates a comprehensive QC report (`${Episode}_report.txt`). It also compares variants found by Clair3 with any user-provided variants.
+    * **Phasing Analysis (Two Variants):** If two variants are provided, the `basecalling_phasing_amplicon.py` script is executed. This script performs the following:
+        * **Variant Validation:** Checks if the provided variants are adequately covered by reads and exhibit expected heterozygous patterns, flagging insufficient coverage, unexpected alleles, or extreme allele skew.
+        * **Quality Control (Phasing Specific):** Filters reads based on mapping quality (MAPQ $\ge 20$) and ensures they span both variant positions. It also checks for "clean spanning reads" (reads where both variants can be confidently called as ref or alt).
+        * **WhatsHap Phasing:** Runs WhatsHap on the quality-controlled spanning reads to generate a phased VCF and a haplotagged BAM file.
+        * **Read-Based Phasing Analysis:** Analyzes the haplotagged BAM file to count reads supporting *cis* (both ref or both alt) and *trans* (one ref, one alt) configurations, providing a percentage breakdown and determining the phase based on read counts.
+        * **VCF-Based Phasing Analysis:** Parses the WhatsHap-phased VCF and (if available) HapCUT2-phased VCF to determine the overall phase (Cis/Trans) based on the reported genotypes.
+        * Generates a detailed report (`${Episode}_report.txt`) summarizing all QC and phasing results.
+    * **Cleanup:** Removes intermediate files and directories.
+    * **Data Upload:** Uploads the processed data for each barcode to an AWS S3 bucket.
 
-## How to Run
-Execute the main pipeline script by providing a `RUNID` as a command-line argument. This `RUNID` must correspond to a directory containing your `sample_sheet.csv` and `bam_pass` subfolder.
+## Output Files
 
-```bash
-# Usage: ./run.sh [RUNID]
-./run.sh MyRun_01
+For each processed sample, the following output files are generated within `WORKDIR/barcodeXX/`:
 
-# Pipeline Workflow
+* **`${Episode}.bam`**: Merged and amplicon-specific BAM file.
+* **`${Episode}.bam.bai`**: Index for the amplicon-specific BAM.
+* **`${Episode}_coordinate.bed`**: BED file specifying the amplicon region.
+* **`${Episode}.wf_snp.vcf.gz`**: GZipped VCF file containing variants called by Clair3.
+* **`${Episode}.wf_snp.vcf.gz.tbi`**: Tabix index for the Clair3 VCF.
+* **`HapCUT2.log`**: Log file for HapCUT2 execution (if run).
+* **`whatshap.log`**: Log file for WhatsHap execution (if run).
+* **`${Episode}_report.txt`**: Comprehensive report detailing QC metrics, variant comparison, and phasing results (if applicable).
+    * **For QC-only analysis:** Contains amplicon region and length, total/passing QC reads, depth statistics, read length distribution (including N50), mapping quality, base quality, alignment statistics (mean identity), strand distribution, and variant comparison with Clair3 calls.
+    * **For Phasing analysis:** Includes variant validation results, detailed QC on spanning reads (total, clean, high-quality spanning reads), WhatsHap and HapCUT2 phasing outcomes, and read-based phasing breakdown (Cis/Trans counts and percentages).
+* **`${Episode}.vcf`**: (Temporary, then removed) Dummy VCF used for phasing input.
+* **`clean-span-hq.bam`**: (Temporary, then removed) BAM file containing high-quality, clean spanning reads.
+* **`${Episode}_phased.bam`**: (Only for two variants) BAM file with reads tagged by WhatsHap for phasing information.
+* **`${Episode}_phased.bam.bai`**: Index for the phased BAM.
+* **`hap2cut_${Episode}`**: (Only for two variants) HapCUT2 phased VCF (if run).
+* **`fragment_${Episode}`**: (Only for two variants) Intermediate file generated by `extractHAIRS`.
 
-The `run.sh` script automates the following workflow for each sample in the sample sheet:
+## Dependencies
 
-### 1. Input Preparation
-- The `sample_sheet.csv` is parsed, and barcode numbers are formatted (e.g., `1` becomes `barcode01`).
+This pipeline relies on several bioinformatics tools and Python libraries.
 
-### 2. Conditional VCF Creation
-- Based on the number of variants in the sample sheet, a VCF file is prepared for analysis:
-  - **Two Variants**: A VCF file containing both variants is created for phasing.
-  - **One or No Variants**: A VCF file is created if one variant is provided; otherwise, this step is skipped.
+**External Tools:**
 
-### 3. BAM File Processing
-- All `.bam` files for a given barcode are merged, sorted, and indexed.
-- Reads for the target amplicon are extracted into a new BAM file.
+* **`samtools`** (version 1.10 or higher recommended): For BAM file manipulation (merging, sorting, indexing, viewing).
+* **`Clair3`**: A deep neural network-based variant caller for ONT data.
+* **`WhatsHap`**: A tool for phasing genetic variants using long reads.
+* **`HapCUT2`**: A program for constructing haplotypes from sequence data.
+* **`bgzip`** and **`tabix`**: For compressing and indexing VCF files.
+* **`conda`**: For managing Python environments and dependencies.
+* **`aws cli`**: For uploading results to S3.
 
-### 4. BED File Creation
-- A BED file is generated from the coordinates in the sample sheet to define the target region for variant calling.
+**Python Libraries:**
 
-### 5. Variant Calling
-- **Clair3** is run on the sample BAM file to call variants within the target region.
+* `pysam`: For interacting with BAM and VCF files in Python.
+* `pandas`: For data manipulation (used in `basecalling_QC_amplicon.py` for `sample_sheet.csv` processing, though the `run.sh` script currently handles this directly).
+* `numpy`: For numerical operations, especially in quality calculations (mean, median, N50).
+* `whatshap` (Python library): Underlying library used by WhatsHap tool.
 
-### 6. Phasing Analysis *(if two variants provided)*
-- **HapCUT2** is run to phase the two specified variants.
-- The `basecalling_phasing_amplicon.py` script is executed for detailed phasing analysis.
+## Usage
 
-### 7. QC Analysis *(if one or no variants provided)*
-- The `basecalling_QC_amplicon.py` script is executed to generate a QC report.
+1.  **Clone the Repository:**
+    ```bash
+    git clone [https://github.com/your_username/your_repo_name.git](https://github.com/your_username/your_repo_name.git)
+    cd your_repo_name
+    ```
+2.  **Install Dependencies:** Ensure all external tools (`samtools`, `Clair3`, `WhatsHap`, `HapCUT2`, `bgzip`, `tabix`, `aws cli`) are installed and accessible in your system's PATH, or configure their paths in `run.sh`. Create and activate the `ONT` conda environment with the necessary Python libraries:
+    ```bash
+    conda create -n ONT python=3.9 pysam pandas numpy whatshap
+    conda activate ONT
+    ```
+3.  **Prepare Input Data:**
+    * Place your `sample_sheet.csv` in the `BASEDIR` (`/EBSDataDrive/ONT/Runs/${RUNID}`).
+    * Organize your raw barcoded BAM files in `BASEDIR/bam_pass/barcodeXX/`.
+    * Ensure your `REFERENCE_FASTA` is correctly specified.
+    * Place `dummy.vcf` in `SCRIPT_PATH`.
+4.  **Configure `run.sh`:** Edit `run.sh` to set `RUNID`, `BASEDIR`, `WORKDIR`, `REFERENCE`, `CLAIR3_PATH`, `HAPCUT2_PATH`, and `SCRIPT_PATH` according to your environment.
+5.  **Run the Pipeline:**
+    ```bash
+    bash run.sh <RUN_ID>
+    ```
+    Replace `<RUN_ID>` with the identifier for your run (e.g., `run.sh my_ont_run`).
 
-### 8. Output Generation & Cleanup
-- The script generates final reports, removes intermediate files, and uploads results to an AWS S3 bucket.
+## Scripts Overview
 
-### 9. Final Report
-- An XML file summarizing the run is generated.
+* **`run.sh`**: The main shell script that orchestrates the entire pipeline. It handles file preparation, tool execution, and cleanup.
+* **`basecalling_QC_amplicon.py`**: A Python script responsible for performing detailed quality control on amplicon BAM files when one or no variants are specified. It generates a comprehensive QC report and compares called variants to user-provided ones.
+* **`basecalling_phasing_amplicon.py`**: A Python script central to the phasing analysis when two variants are specified. It performs variant validation, additional QC filtering, runs WhatsHap for phasing, analyzes read-level phasing, and generates a report on phasing outcomes. It also handles the parsing of HapCUT2 output if available.
+* **`README.md`**: This file, providing an overview of the pipeline.
+* **`sample_sheet.csv`**: Example input file defining samples and their variants.
+* **`dummy.vcf`**: A template VCF file used by `prepare_vcf` in `run.sh`.
 
----
+## License
 
-# Output Files
+This project is licensed under the MIT License.
 
-For each sample, the pipeline generates a results directory containing several key files:
+## Contact
 
-- `[Episode]_report.txt`:  
-  The primary output file generated by the Python scripts.  
-  - For **phasing analysis**: includes validation of variants, allele balance checks, QC stats on spanning reads, a final phasing call (*Cis* or *Trans*), and an estimate of chimeric reads.  
-  - For **QC analysis**: includes a QC Pass/Fail summary, variant validation, and detailed statistics on read depth, length (N50), mapping quality, and base quality.
-
-- `[Episode].bam`:  
-  The merged, sorted, and indexed BAM file for the target amplicon.
-
-- `[Episode].wf_snp.vcf.gz`:  
-  The gzipped VCF file of variants called by Clair3.
-
-- `[Episode]_phased.bam`: *(Phasing only)*  
-  A BAM file where reads are tagged by WhatsHap with their haplotype (`HP` tag).
-
----
-
-# Core Functionality Breakdown
-
-## Quality Control (QC)
-
-The QC script (`basecalling_QC_amplicon.py`) provides a high-level summary and detailed metrics.  
-A sample receives a **QC PASSED** status if it meets the following criteria:
-
-- **High-Quality Reads > 50**: More than 50 reads pass the internal quality filter.
-- **Minimum Depth > 50×**: Sequencing depth does not drop below 50× across the entire amplicon.
-
-## Variant Calling
-
-Variant calling is performed by **Clair3**.  
-The pipeline is configured to use the following model:
-
-- `r1041_e82_400bps_sup_v500`
-
-Clair3's internal phasing functionality (via WhatsHap) is also enabled.
-
-## Haplotype Phasing
-
-When two variants are provided, the pipeline applies a multi-step strategy to determine phase:
-
-- **Variant Validation**:  
-  The script (`basecalling_phasing_amplicon.py`) checks that both variants are present in the reads at heterozygous frequencies.
-
-- **Read Counting**:  
-  The number of high-quality reads supporting each haplotype is counted:
-  - *Cis*: Reads containing `(ref-ref)` or `(alt-alt)`
-  - *Trans*: Reads containing `(ref-alt)` or `(alt-ref)`
-
-- **Tool-Based Phasing**:  
-  The phase calls from WhatsHap and HapCUT2 are parsed from their VCF outputs and reported as confirmation.
-
----
-
-# Configuration
-
-Key paths for tools and reference files are hardcoded at the beginning of the `run.sh` script and may need to be modified as required.
-
-# Reference and Tool Paths in `run.sh`
-
-The following key paths are hardcoded in the `run.sh` script:
-
-- `REFERENCE`:  
-  `/EFSGaiaDataDrive/ref/ONT/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna`  
-  Path to the reference genome used for alignment and variant calling.
-
-- `CLAIR3_PATH`:  
-  `/EBSDataDrive/ONT/Clair3`  
-  Path to the Clair3 variant calling tool directory.
-
-- `HAPCUT2_PATH`:  
-  `/EBSDataDrive/ONT/HapCUT2-1.3.4/build`  
-  Path to the compiled HapCUT2 binary directory.
-
-- `SCRIPT_PATH`:  
-  `/EBSDataDrive/ONT/script`  
-  Path to custom scripts used in the pipeline (e.g., QC and phasing analysis).
-
+For questions or issues, please open an issue on the GitHub repository.
