@@ -1,6 +1,8 @@
 # Amplicon Analysis Pipeline for Oxford Nanopore Sequencing
 
-This repository contains a bioinformatics pipeline designed for analyzing barcoded amplicon sequences generated from Oxford Nanopore Technology (ONT) data. The pipeline is capable of performing quality control, variant calling, and haplotype phasing, specifically tailored for scenarios involving one or two genetic variants of interest.
+This repository contains a bioinformatics pipeline designed for analyzing barcoded amplicon sequences generated from Oxford Nanopore Technology (ONT) data. The pipeline is capable of performing quality control, variant calling, and haplotype phasing, specifically tailored for two main purposes:
+1. Single-variant localization and quality control.
+2. Two-variant phasing to determine whether the variants are on the same chromosome (*cis*) or different chromosomes (*trans*).
 
 ## Table of Contents
 - [Introduction](#introduction)
@@ -18,15 +20,15 @@ This repository contains a bioinformatics pipeline designed for analyzing barcod
 
 ## Introduction
 
-Targeted sequencing of amplicons with Oxford Nanopore Technology allows for in-depth analysis of specific genomic regions. This pipeline automates the process of evaluating the quality of these reads, identifying genetic variants within the amplicon, and determining their phase (i.e., whether two variants are on the same chromosome - *cis* - or on different chromosomes - *trans*). The pipeline is flexible, supporting both single-variant localization/QC and two-variant phasing analyses.
+Targeted sequencing of amplicons generated using long-range PCR and sequenced with Oxford Nanopore Technology allows for in-depth analysis of specific genomic regions. This pipeline automates the process of evaluating the quality of these reads, identifying genetic variants within the amplicons, and more specifically determining the phase of two pre-determined variants (i.e., whether two variants are on the same chromosome - *cis* - or on different chromosomes - *trans*). The pipeline is flexible, and also supports single-variant localization/QC.
 
 ## Features
 
-* **Automated Workflow:** Streamlines the analysis from raw BAMs to phased variant calls.
+* **Automated Workflow:** Streamlines the analysis from raw BAMs to a pulished report for phasing or variant localisation. 
 * **Quality Control (QC):**
-    * Assesses general sequencing quality (read length, mapping quality, base quality, read identity).
+    * Assesses general sequencing quality (read length, mapping quality, base quality, read identity) for each amplicon.
     * Calculates amplicon coverage depth statistics (median, mean, min, max).
-    * Filters reads based on user-defined quality thresholds for downstream analysis.
+    * Filters reads based on user-defined quality thresholds (default QMAP>20) for downstream analysis.
     * Provides a comprehensive QC report.
 * **Variant Calling:** Utilizes Clair3 for accurate single nucleotide polymorphism (SNP) and indel calling.
 * **Haplotype Phasing:**
@@ -39,13 +41,13 @@ Targeted sequencing of amplicons with Oxford Nanopore Technology allows for in-d
 
 ## How it Works
 
-The pipeline is orchestrated by a `run.sh` script, which integrates several Python scripts and external bioinformatics tools.
+The pipeline is orchestrated by a `run.sh` script, which integrates two Python scripts and external bioinformatics tools.
 
 ### Configuration and Setup
 
 The `run.sh` script requires initial configuration of base directories, reference genome paths, and tool paths.
 
-* `RUNID`: Identifier for the current sequencing run.
+* `RUNID`: Identifier for the current sequencing run (the name of the folder with files to analyse).
 * `BASEDIR`: Root directory where raw BAM files and sample sheet are located.
 * `WORKDIR`: Directory for storing analysis results and intermediate files.
 * `REFERENCE_FASTA`: Path to the reference genome in FASTA format (e.g., GRCh38).
