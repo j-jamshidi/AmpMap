@@ -47,35 +47,35 @@ The pipeline is orchestrated by a `run.sh` script, which integrates two Python s
 
 The `run.sh` script requires initial configuration of base directories, reference genome paths, and tool paths.
 
-* `RUNID`: Identifier for the current sequencing run (the name of the folder with files to analyse).
+* `RUNID`: Identifier for the current sequencing run (the name of the folder with files to analyse / run ID).
 * `BASEDIR`: Root directory where raw BAM files and sample sheet are located.
 * `WORKDIR`: Directory for storing analysis results and intermediate files.
 * `REFERENCE_FASTA`: Path to the reference genome in FASTA format (e.g., GRCh38).
 * `CLAIR3_PATH`: Path to the Clair3 variant caller installation.
 * `HAPCUT2_PATH`: Path to the HapCUT2 installation.
-* `SCRIPT_PATH`: Path to the directory containing the pipeline's Python scripts.
+* `SCRIPT_PATH`: Path to the `script` directory. The script folder contain the pipeline's scripts and nessesary files. 
 
 ### Input Data
 
 The pipeline expects the following input files:
 
 * **Sample Sheet (`sample_sheet.csv`):** A CSV file detailing samples, barcodes, amplicon coordinates, and the variants of interest.
-    * `Batch`: Batch number.
-    * `Barcode`: Barcode identifier (e.g., `barcode01`).
+    * `Batch`: Batch number (run ID).
+    * `Barcode`: Barcode identifier (e.g., `03`).
     * `Episode`: Unique identifier for the sample (e.g., `NA24385_FY2`).
-    * `Coordinate`: Genomic coordinates of the amplicon (e.g., `chr1:236010990-236033398`).
-    * `Variant1`: Details of the first variant (e.g., `chr1:236011853 T>C`). If no variant is provided, set to empty.
-    * `Variant2`: Details of the second variant (e.g., `chr1:236033263 A>G`). If only one variant is provided, set to empty.
-    * `EpisodeWES`: WES (Whole Exome Sequencing) episode identifier for the sample.
-* **Raw BAM Files:** Barcoded BAM files organized by barcode within `BASEDIR/bam_pass/`. Each barcode directory should contain BAM files from the sequencing run.
+    * `Coordinate`: Genomic coordinates of the amplicon (e.g., `chr1:236010990-236033398` -must not have comma between numbers).
+    * `Variant1`: Details of the first variant (e.g., `chr1:236011853 T>C`or `chr1:236011853:T:C`). If no variant is provided, set to empty.
+    * `Variant2`: Details of the second variant (e.g., `chr1:236011853 T>C`or `chr1:236011853:T:C`). If only one variant is provided, set to empty.
+    * `EpisodeWES`: WES (Whole Exome Sequencing) episode identifier for the sample, set to emty if not available.
+* **Raw BAM Files:** Barcoded BAM files organized by barcode within `BASEDIR/bam_pass/`. Each barcode directory should contain BAM files from the same barcode. This is the default structure of the Oxford Nanopore sequening output `BASEDIR/bam_pass/barcode{x}`
 * **Dummy VCF Template (`dummy.vcf`):** A template VCF file used to generate sample-specific VCFs based on the `sample_sheet.csv`. This template is located in `SCRIPT_PATH`.
 
 ### Pipeline Steps
 
 The `run.sh` script iterates through each sample defined in `sample_sheet.csv` and performs the following operations:
 
-1.  **Prepare Input File (`prepare_input_file`):** Reads the `sample_sheet.csv`, formats barcode numbers (e.g., `barcode01`), converts `Episode` and `EpisodeWES` to uppercase, and creates a processed `.info` file.
-2.  **Create Sample Directory:** A dedicated directory is created for each barcode (`WORKDIR/barcodeXX`).
+1.  **Prepare Input File (`prepare_input_file`):** Reads the `sample_sheet.csv`, formats barcode numbers (e.g., `barcode01`), converts `Episode` and `EpisodeWES` to uppercase, remove any inconsistencies (e.g extra spaces) and creates a processed `.info` file.
+2.  **Create Sample Directory:** A dedicated directory is created for each barcode for results (`WORKDIR/barcodeXX`).
 3.  **Prepare VCF File (`prepare_vcf`):**
     * Copies a `dummy.vcf` template to the sample's directory.
     * Populates the template with the `Variant1` and `Variant2` information from the sample sheet.
@@ -141,7 +141,7 @@ This pipeline relies on several bioinformatics tools and Python libraries.
 * **`HapCUT2`**: A program for constructing haplotypes from sequence data.
 * **`bgzip`** and **`tabix`**: For compressing and indexing VCF files.
 * **`conda`**: For managing Python environments and dependencies.
-* **`aws cli`**: For uploading results to S3.
+* **`aws cli`**: For uploading results to S3 (optional).
 
 **Python Libraries:**
 
@@ -164,7 +164,7 @@ This pipeline relies on several bioinformatics tools and Python libraries.
     ```
 3.  **Prepare Input Data:**
     * Place your `sample_sheet.csv` in the `BASEDIR` (`/EBSDataDrive/ONT/Runs/${RUNID}`).
-    * Organize your raw barcoded BAM files in `BASEDIR/bam_pass/barcodeXX/`.
+    * Organize your raw barcoded BAM files in `BASEDIR/bam_pass/barcodeXX/` (The ONT default sequencing output structure).
     * Ensure your `REFERENCE_FASTA` is correctly specified.
     * Place `dummy.vcf` in `SCRIPT_PATH`.
 4.  **Configure `run.sh`:** Edit `run.sh` to set `RUNID`, `BASEDIR`, `WORKDIR`, `REFERENCE`, `CLAIR3_PATH`, `HAPCUT2_PATH`, and `SCRIPT_PATH` according to your environment.
@@ -182,6 +182,8 @@ This pipeline relies on several bioinformatics tools and Python libraries.
 * **`README.md`**: This file, providing an overview of the pipeline.
 * **`sample_sheet.csv`**: Example input file defining samples and their variants.
 * **`dummy.vcf`**: A template VCF file used by `prepare_vcf` in `run.sh`.
+* **`get_xml.sh`**: A script to fetch XML files from S3 (optional). This script looks for and matches `EpisodeWES` to the WES databse and retrieves the corresponding XML file.
+* **`solo_LR_SR.xml`**: A template for the xml file to visualse short and long reads.  
 
 ## License
 
