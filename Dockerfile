@@ -15,12 +15,20 @@ RUN apt-get update && apt-get install -y \
     liblzma-dev \
     libcurl4-openssl-dev \
     libssl-dev \
-    libhts-dev \
     samtools \
     tabix \
     awscli \
     docker.io \
     && rm -rf /var/lib/apt/lists/*
+
+# Install htslib from source for HapCUT2
+RUN cd /opt && \
+    wget https://github.com/samtools/htslib/releases/download/1.19.1/htslib-1.19.1.tar.bz2 && \
+    tar -xjf htslib-1.19.1.tar.bz2 && \
+    cd htslib-1.19.1 && \
+    ./configure --prefix=/usr/local && \
+    make && make install && \
+    cd .. && rm -rf htslib-1.19.1*
 
 # Create conda environment for ONT tools
 RUN conda create -n ONT python=3.9 -y
