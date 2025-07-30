@@ -318,15 +318,28 @@ class AmpliconPipeline:
         clair3_output = output_dir / "variant_calling_output"
         log_file = output_dir / "clair3.log"
         
-        # Build command
-        cmd = [
-            f"{clair3_path}/run_clair3.sh",
+        # Detect Clair3 installation type and build command
+        clair3_script = Path(clair3_path) / "run_clair3.sh"
+        docker_wrapper = Path("/opt/bin/run_clair3.sh")
+        
+        if docker_wrapper.exists():
+            # Docker installation
+            cmd = [str(docker_wrapper)]
+            model_path = f"/opt/models/{self.config['paths']['clair3_model']}"
+        elif clair3_script.exists():
+            # Conda installation
+            cmd = [str(clair3_script)]
+            model_path = f"{clair3_path}/models/{self.config['paths']['clair3_model']}"
+        else:
+            raise FileNotFoundError(f"Clair3 not found. Checked: {docker_wrapper} and {clair3_script}")
+        
+        cmd.extend([
             f"--bam_fn={bam_file}",
             f"--bed_fn={bed_file}",
             f"--ref_fn={reference}",
             f"--threads={clair3_config['threads']}",
             f"--platform={clair3_config['platform']}",
-            f"--model_path={clair3_path}/models/{self.config['paths']['clair3_model']}",
+            f"--model_path={model_path}",
             f"--sample_name={episode}",
             f"--output={clair3_output}",
             f"--min_coverage={clair3_config['min_coverage']}",
@@ -354,9 +367,14 @@ class AmpliconPipeline:
             log.write(f"Environment PATH: {env.get('PATH', 'Not set')}\n\n")
             log.flush()
             
-            # Activate Clair3 conda environment and run command
-            bash_cmd = f"source $(conda info --base)/etc/profile.d/conda.sh && conda activate clair3 && cd {output_dir} && {' '.join(cmd)}"
-            result = subprocess.run(['bash', '-c', bash_cmd], stdout=log, stderr=subprocess.STDOUT, text=True, env=env)
+            # Run Clair3 command (Docker or conda)
+            if docker_wrapper.exists():
+                # Docker installation - run directly
+                result = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, text=True, env=env, cwd=str(output_dir))
+            else:
+                # Conda installation - activate clair3 environment
+                bash_cmd = f"source $(conda info --base)/etc/profile.d/conda.sh && conda activate clair3 && cd {output_dir} && {' '.join(cmd)}"
+                result = subprocess.run(['bash', '-c', bash_cmd], stdout=log, stderr=subprocess.STDOUT, text=True, env=env)
             
         # Check result and log details
         if result.returncode != 0:

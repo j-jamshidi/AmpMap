@@ -13,7 +13,7 @@ services:
     environment:
       # Use original default paths (tools are installed in container)
       - ONT_REFERENCE_GENOME=/opt/reference/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
-      - ONT_CLAIR3_PATH=/opt/Clair3
+      - ONT_CLAIR3_PATH=/opt/bin
       - ONT_HAPCUT2_PATH=/opt/HapCUT2-1.3.4/build
       - ONT_BASE_DATA_DIR=/EBSDataDrive/ONT/Runs
       - ONT_SOFTWARE_DIR=/EBSDataDrive/software
@@ -37,7 +37,7 @@ services:
       - ${SOFTWARE_DIR:-./software}:/EBSDataDrive/software
     environment:
       - ONT_REFERENCE_GENOME=/opt/reference/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
-      - ONT_CLAIR3_PATH=/opt/Clair3
+      - ONT_CLAIR3_PATH=/opt/bin
       - ONT_HAPCUT2_PATH=/opt/HapCUT2-1.3.4/build
       - ONT_BASE_DATA_DIR=/EBSDataDrive/ONT/Runs
       - ONT_SOFTWARE_DIR=/EBSDataDrive/software
