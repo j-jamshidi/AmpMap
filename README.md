@@ -54,15 +54,28 @@ src/ont_amplicon_phase/
 
 ## Configuration
 
-The pipeline uses default paths that can be overridden with environment variables:
+The pipeline uses the original default paths from the bash scripts:
+
+```yaml
+paths:
+  reference_genome: "/EFSGaiaDataDrive/ref/ONT/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna"
+  clair3_path: "/EBSDataDrive/ONT/Clair3"
+  base_data_dir: "/EBSDataDrive/ONT/Runs"
+  hapcut2_path: "/EBSDataDrive/ONT/HapCUT2-1.3.4/build"
+  software_dir: "/EBSDataDrive/software"
+
+aws:
+  s3_bucket: "nswhp-gaia-poc-pl"
+  s3_prefix: "ONT"
+```
+
+Override with environment variables if needed:
 
 ```bash
 export ONT_REFERENCE_GENOME="/path/to/reference.fna"
 export ONT_CLAIR3_PATH="/path/to/clair3"
 export ONT_S3_BUCKET="your-bucket"
 ```
-
-See `src/ont_amplicon_phase/config/default.yaml` for all configurable options.
 
 ## Sample Sheet Format
 
@@ -96,11 +109,20 @@ Results are automatically uploaded to S3 with presigned URLs for visualization.
 ## Docker Usage
 
 ```bash
-# Build and run
+# Build image (includes all tools and reference genome)
 docker build -t ont-amplicon-phase .
+
+# Using docker-compose (recommended)
+export DATA_DIR=/path/to/your/data
+export AWS_ACCESS_KEY_ID=your_key
+export AWS_SECRET_ACCESS_KEY=your_secret
+docker-compose run ont-amplicon-phase ont-amplicon-phase run RUN_001
+
+# Direct docker run
 docker run --rm \
-  -v /data:/data \
+  -v /path/to/data:/EBSDataDrive/ONT/Runs \
   -e AWS_ACCESS_KEY_ID=your_key \
+  -e AWS_SECRET_ACCESS_KEY=your_secret \
   ont-amplicon-phase \
   ont-amplicon-phase run RUN_001
 ```

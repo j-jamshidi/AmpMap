@@ -1,6 +1,6 @@
-FROM python:3.9-slim
+FROM continuumio/miniconda3:latest
 
-# Prevent interactive prompts during package installation
+# Prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install system dependencies
@@ -17,12 +17,15 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     samtools \
     tabix \
-    bgzip \
     awscli \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python packages directly
-RUN pip install --no-cache-dir \
+# Create conda environment for ONT tools
+RUN conda create -n ONT python=3.9 -y
+ENV PATH /opt/conda/envs/ONT/bin:$PATH
+
+# Install Python packages in ONT environment
+RUN /opt/conda/envs/ONT/bin/pip install --no-cache-dir \
     pysam>=0.19.0 \
     pandas>=1.3.0 \
     numpy>=1.21.0 \
@@ -31,8 +34,30 @@ RUN pip install --no-cache-dir \
     pyyaml>=6.0 \
     jsonschema>=4.0.0
 
-# Note: Clair3 and HapCUT2 should be installed on the host system
-# This container is for the pipeline only
+# Install Clair3
+RUN cd /opt && \
+    git clone https://github.com/HKU-BAL/Clair3.git && \
+    cd Clair3 && \
+    conda env create -f environment.yml -n clair3 && \
+    mkdir -p models && \
+    cd models && \
+    wget http://www.bio8.cs.hku.hk/clair3/clair3_models/r1041_e82_400bps_sup_v500.tar.gz && \
+    tar -zxf r1041_e82_400bps_sup_v500.tar.gz && \
+    rm r1041_e82_400bps_sup_v500.tar.gz
+
+# Install HapCUT2
+RUN cd /opt && \
+    wget https://github.com/vibansal/HapCUT2/archive/v1.3.4.tar.gz && \
+    tar -zxf v1.3.4.tar.gz && \
+    cd HapCUT2-1.3.4 && \
+    make
+
+# Download reference genome
+RUN mkdir -p /opt/reference && \
+    cd /opt/reference && \
+    wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz && \
+    gunzip GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz && \
+    samtools faidx GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
 
 # Set working directory
 WORKDIR /app
@@ -42,19 +67,16 @@ COPY src/ ./src/
 COPY setup.py pyproject.toml ./
 COPY README.md ./
 
-# Install the application
-RUN pip install -e .
+# Install the application in ONT environment
+RUN /opt/conda/envs/ONT/bin/pip install -e .
 
-# Create directories for data and results
-RUN mkdir -p /data /results /config
+# Activate ONT environment by default
+RUN echo "conda activate ONT" >> ~/.bashrc
+SHELL ["/bin/bash", "--login", "-c"]
 
-# Set environment variables
-ENV ONT_REFERENCE_GENOME="/data/reference/genome.fna"
-ENV ONT_CLAIR3_PATH="/opt/Clair3"
-ENV ONT_HAPCUT2_PATH="/opt/HapCUT2/build"
 CMD ["ont-amplicon-phase", "--help"]
 
 # Labels
-LABEL maintainer="Clinical Genomics Team <support@example.com>"
+LABEL maintainer="Javad Jamshidi <javad.jamshidi@neura.edu.au>"
 LABEL version="1.0.0"
-LABEL description="Professional pipeline for ONT amplicon sequencing analysis and variant phasing"
+LABEL description="ONT amplicon sequencing analysis pipeline with all dependencies included"
