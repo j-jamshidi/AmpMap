@@ -1,4 +1,4 @@
-FROM continuumio/miniconda3:latest
+FROM continuumio/miniconda3:23.5.2-0
 
 # Prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
@@ -34,9 +34,9 @@ RUN /opt/conda/envs/ONT/bin/pip install --no-cache-dir \
     pyyaml>=6.0 \
     jsonschema>=4.0.0
 
-# Install Clair3
+# Install Clair3 (pinned version)
 RUN cd /opt && \
-    git clone https://github.com/HKU-BAL/Clair3.git && \
+    git clone --branch v1.0.8 --depth 1 https://github.com/HKU-BAL/Clair3.git && \
     cd Clair3 && \
     conda env create -f environment.yml -n clair3 && \
     mkdir -p models && \
@@ -45,7 +45,7 @@ RUN cd /opt && \
     tar -zxf r1041_e82_400bps_sup_v500.tar.gz && \
     rm r1041_e82_400bps_sup_v500.tar.gz
 
-# Install HapCUT2
+# Install HapCUT2 (pinned version)
 RUN cd /opt && \
     wget https://github.com/vibansal/HapCUT2/archive/v1.3.4.tar.gz && \
     tar -zxf v1.3.4.tar.gz && \
