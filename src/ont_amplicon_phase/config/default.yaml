@@ -1,0 +1,69 @@
+# Default configuration for ONT Amplicon Phase Pipeline
+
+# Quality Control Thresholds
+qc:
+  min_read_length: 1000
+  min_mapping_quality: 20
+  min_identity: 0.8
+  min_base_quality: 7
+  min_passing_reads: 50
+  min_depth: 50
+
+# Variant Calling Parameters
+variant_calling:
+  clair3:
+    platform: "ont"
+    threads: 6
+    min_coverage: 20
+    var_pct_full: 1
+    ref_pct_full: 1
+    var_pct_phasing: 1
+    enable_phasing: true
+    use_whatshap: true
+    remove_intermediate: true
+
+# Phasing Parameters
+phasing:
+  whatshap:
+    reference_required: true
+    ignore_read_groups: false
+  hapcut2:
+    ont_mode: true
+    include_indels: true
+
+# File Paths (default paths from original implementation)
+paths:
+  reference_genome: "/EFSGaiaDataDrive/ref/ONT/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna"
+  clair3_path: "/EBSDataDrive/ONT/Clair3"
+  hapcut2_path: "/EBSDataDrive/ONT/HapCUT2-1.3.4/build"
+  base_data_dir: "/EBSDataDrive/ONT/Runs"
+  script_dir: "/EBSDataDrive/ONT/script"
+  software_dir: "/EBSDataDrive/software"
+  clair3_model: "r1041_e82_400bps_sup_v500"
+  
+# Output Settings
+output:
+  cleanup_intermediate: true
+  compress_vcf: true
+  create_index: true
+  upload_to_s3: true
+  generate_xml: true
+
+# AWS Settings (from original implementation)
+aws:
+  s3_bucket: "nswhp-gaia-poc-pl"
+  s3_prefix: "ONT"
+  presign_expire_seconds: 604800
+
+# BaseSpace Settings (for WES data integration)
+basespace:
+  config_name: "POWH"
+  sample_files:
+    - "/EBSDataDrive/software/sample_ran.txt"
+    - "/EBSDataDrive/software/sample_ran_CRE_BS.txt"
+  combined_file: "/EBSDataDrive/software/sample_SR.txt"
+
+# Logging
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  ont-amplicon-phase:
+    build: .
+    image: ont-amplicon-phase:latest
+    container_name: ont-amplicon-pipeline
+    volumes:
+      - ./data:/data
+      - ./results:/results
+      - ./config:/config
+    environment:
+      - ONT_REFERENCE_GENOME=/data/reference/genome.fna
+      - ONT_CLAIR3_PATH=/opt/Clair3
+      - ONT_HAPCUT2_PATH=/opt/HapCUT2/build
+      - ONT_LOG_LEVEL=INFO
+    working_dir: /app
+    command: ["ont-amplicon-phase", "--help"]
+
+  # Development service with mounted source code
+  ont-amplicon-dev:
+    build: .
+    image: ont-amplicon-phase:latest
+    container_name: ont-amplicon-dev
+    volumes:
+      - ./src:/app/src
+      - ./data:/data
+      - ./results:/results
+      - ./config:/config
+    environment:
+      - ONT_REFERENCE_GENOME=/data/reference/genome.fna
+      - ONT_CLAIR3_PATH=/opt/Clair3
+      - ONT_HAPCUT2_PATH=/opt/HapCUT2/build
+      - ONT_LOG_LEVEL=DEBUG
+    working_dir: /app
+    command: ["bash"]
+    stdin_open: true
+    tty: true
