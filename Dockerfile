@@ -35,8 +35,7 @@ RUN /opt/conda/envs/ONT/bin/pip install --no-cache-dir \
     pyyaml>=6.0 \
     jsonschema>=4.0.0
 
-# Pull prebuilt Clair3 Docker image
-RUN docker pull hkubal/clair3:latest
+# Note: Clair3 Docker image will be pulled on first use
 
 # Install HapCUT2 (pinned version)
 RUN cd /opt && \
@@ -52,9 +51,13 @@ RUN mkdir -p /opt/reference && \
     gunzip GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz && \
     samtools faidx GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
 
-# Create Clair3 wrapper script
+# Create Clair3 wrapper script that pulls image if needed
 RUN mkdir -p /opt/bin && \
     echo '#!/bin/bash' > /opt/bin/run_clair3.sh && \
+    echo 'if ! docker image inspect hkubal/clair3:latest >/dev/null 2>&1; then' >> /opt/bin/run_clair3.sh && \
+    echo '  echo "Pulling Clair3 Docker image..."' >> /opt/bin/run_clair3.sh && \
+    echo '  docker pull hkubal/clair3:latest' >> /opt/bin/run_clair3.sh && \
+    echo 'fi' >> /opt/bin/run_clair3.sh && \
     echo 'docker run --rm -v "$PWD":"$PWD" hkubal/clair3:latest /opt/bin/run_clair3.sh "$@"' >> /opt/bin/run_clair3.sh && \
     chmod +x /opt/bin/run_clair3.sh
 
