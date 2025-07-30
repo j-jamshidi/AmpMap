@@ -11,11 +11,9 @@ cd ont-amplicon-phase
 pip install .
 ```
 
-### Docker (Recommended)
+### Docker
 
-```bash
-docker build -t ont-amplicon-phase .
-```
+See [Docker Usage](#docker-usage) section below for complete instructions.
 
 ## Usage
 
@@ -108,24 +106,68 @@ Results are automatically uploaded to S3 with presigned URLs for visualization.
 
 ## Docker Usage
 
+### Build the Image
+
 ```bash
 # Build image (includes all tools and reference genome)
 docker build -t ont-amplicon-phase .
+```
 
-# Using docker-compose (recommended)
+### Method 1: Using docker-compose (Recommended)
+
+```bash
+# Set environment variables
 export DATA_DIR=/path/to/your/data
+export RESULTS_DIR=/path/to/results
 export AWS_ACCESS_KEY_ID=your_key
 export AWS_SECRET_ACCESS_KEY=your_secret
+
+# Run pipeline
 docker-compose run ont-amplicon-phase ont-amplicon-phase run RUN_001
 
-# Direct docker run
+# Validate sample sheet
+docker-compose run ont-amplicon-phase ont-amplicon-phase validate sample_sheet.csv
+```
+
+### Method 2: Direct Docker Run
+
+```bash
+# Run pipeline
 docker run --rm \
   -v /path/to/data:/EBSDataDrive/ONT/Runs \
+  -v /path/to/results:/EBSDataDrive/ONT/Runs/results \
   -e AWS_ACCESS_KEY_ID=your_key \
   -e AWS_SECRET_ACCESS_KEY=your_secret \
   ont-amplicon-phase \
   ont-amplicon-phase run RUN_001
+
+# Custom input/output directories
+docker run --rm \
+  -v /path/to/input:/input \
+  -v /path/to/output:/output \
+  -e AWS_ACCESS_KEY_ID=your_key \
+  ont-amplicon-phase \
+  ont-amplicon-phase run RUN_001 --input-dir /input --output-dir /output
 ```
+
+### Docker Environment Variables
+
+```bash
+# Required for S3 upload
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+
+# Optional overrides
+ONT_S3_BUCKET=your-custom-bucket
+ONT_S3_PREFIX=your-prefix
+ONT_LOG_LEVEL=DEBUG
+```
+
+### Docker Volume Mapping
+
+- **Data directory**: `/path/to/data` → `/EBSDataDrive/ONT/Runs`
+- **Results directory**: `/path/to/results` → `/EBSDataDrive/ONT/Runs/results`
+- **Software directory**: `/path/to/software` → `/EBSDataDrive/software`
 
 ## Requirements
 
