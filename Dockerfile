@@ -34,16 +34,23 @@ RUN /opt/conda/envs/ONT/bin/pip install --no-cache-dir \
     pyyaml>=6.0 \
     jsonschema>=4.0.0
 
-# Install Clair3 (pinned version)
+# Install Clair3 (pinned version) with proper conda environment
 RUN cd /opt && \
     git clone --branch v1.0.8 --depth 1 https://github.com/HKU-BAL/Clair3.git && \
     cd Clair3 && \
-    conda env create -f environment.yml -n clair3 && \
+    conda env create -f environment.yml && \
     mkdir -p models && \
     cd models && \
     wget http://www.bio8.cs.hku.hk/clair3/clair3_models/r1041_e82_400bps_sup_v500.tar.gz && \
     tar -zxf r1041_e82_400bps_sup_v500.tar.gz && \
     rm r1041_e82_400bps_sup_v500.tar.gz
+
+# Create wrapper script for Clair3 that activates the correct environment
+RUN echo '#!/bin/bash' > /opt/Clair3/run_clair3_wrapper.sh && \
+    echo 'source /opt/conda/etc/profile.d/conda.sh' >> /opt/Clair3/run_clair3_wrapper.sh && \
+    echo 'conda activate clair3' >> /opt/Clair3/run_clair3_wrapper.sh && \
+    echo 'exec /opt/Clair3/run_clair3.sh "$@"' >> /opt/Clair3/run_clair3_wrapper.sh && \
+    chmod +x /opt/Clair3/run_clair3_wrapper.sh
 
 # Install HapCUT2 (pinned version)
 RUN cd /opt && \
@@ -70,8 +77,9 @@ COPY README.md ./
 # Install the application in ONT environment
 RUN /opt/conda/envs/ONT/bin/pip install -e .
 
-# Activate ONT environment by default
-RUN echo "conda activate ONT" >> ~/.bashrc
+# Setup conda initialization and default environment
+RUN echo "source /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate ONT" >> ~/.bashrc
 SHELL ["/bin/bash", "--login", "-c"]
 
 CMD ["ont-amplicon-phase", "--help"]

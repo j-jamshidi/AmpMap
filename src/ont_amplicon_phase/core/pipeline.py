@@ -3,6 +3,7 @@
 import pandas as pd
 import subprocess
 import pysam
+import os
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 import logging
@@ -353,8 +354,8 @@ class AmpliconPipeline:
             log.write(f"Environment PATH: {env.get('PATH', 'Not set')}\n\n")
             log.flush()
             
-            # Use bash to ensure conda environment is available
-            bash_cmd = f"cd {output_dir} && source activate ONT 2>/dev/null || true && {' '.join(cmd)}"
+            # Activate Clair3 conda environment and run command
+            bash_cmd = f"source $(conda info --base)/etc/profile.d/conda.sh && conda activate clair3 && cd {output_dir} && {' '.join(cmd)}"
             result = subprocess.run(['bash', '-c', bash_cmd], stdout=log, stderr=subprocess.STDOUT, text=True, env=env)
             
         # Check result and log details
