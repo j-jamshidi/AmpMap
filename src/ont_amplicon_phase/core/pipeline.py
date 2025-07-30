@@ -152,9 +152,14 @@ class AmpliconPipeline:
                 )
             
             # Step 4: Run variant calling
-            called_vcf = self._run_variant_calling(
-                bam_file, bed_file, episode, sample_output_dir
-            )
+            try:
+                called_vcf = self._run_variant_calling(
+                    bam_file, bed_file, episode, sample_output_dir
+                )
+            except Exception as e:
+                logger.error(f"Variant calling failed for {episode}: {e}")
+                # Continue with analysis even if variant calling fails
+                called_vcf = None
             
             # Step 5: Run analysis based on type
             if analysis_type == "phasing":
@@ -171,21 +176,26 @@ class AmpliconPipeline:
                 qc_results = self.qc_analyzer.analyze_amplicon(bam_file, bed_file, episode)
                 
                 # Add variant comparison if applicable
-                if vcf_file and called_vcf.exists():
-                    comparison_results = self.variant_processor.compare_variants(vcf_file, called_vcf)
-                    user_variants = self.variant_processor._read_variants_from_vcf(vcf_file)
-                    called_variants = self.variant_processor._read_variants_from_called_vcf(called_vcf)
-                    
-                    # Write comparison to report
-                    report_file = sample_output_dir / f"{episode}_report.txt"
-                    self.qc_analyzer.write_qc_report(qc_results, report_file)
-                    self.variant_processor.write_variant_comparison_report(
-                        comparison_results, called_variants, report_file, user_variants
-                    )
-                else:
-                    self.qc_analyzer.write_qc_report(
-                        qc_results, sample_output_dir / f"{episode}_report.txt"
-                    )
+                report_file = sample_output_dir / f"{episode}_report.txt"
+                self.qc_analyzer.write_qc_report(qc_results, report_file)
+                
+                if vcf_file and called_vcf and called_vcf.exists():
+                    try:
+                        comparison_results = self.variant_processor.compare_variants(vcf_file, called_vcf)
+                        user_variants = self.variant_processor._read_variants_from_vcf(vcf_file)
+                        called_variants = self.variant_processor._read_variants_from_called_vcf(called_vcf)
+                        
+                        # Write comparison to report
+                        self.variant_processor.write_variant_comparison_report(
+                            comparison_results, called_variants, report_file, user_variants
+                        )
+                    except Exception as e:
+                        logger.warning(f"Variant comparison failed for {episode}: {e}")
+                        with open(report_file, 'a') as f:
+                            f.write(f"\nVariant comparison failed: {e}\n")
+                elif vcf_file:
+                    with open(report_file, 'a') as f:
+                        f.write("\nVariant calling failed - no comparison available\n")
             
             # Step 6: Upload to S3
             if self.config.get('output', {}).get('upload_to_s3', True):
@@ -292,8 +302,22 @@ class AmpliconPipeline:
         reference = self.config['paths']['reference_genome']
         clair3_config = self.config['variant_calling']['clair3']
         
-        clair3_output = output_dir / "variant_calling_output"
+        # Validate required files exist
+        clair3_script = Path(clair3_path) / "run_clair3.sh"
+        if not clair3_script.exists():
+            raise FileNotFoundError(f"Clair3 script not found: {clair3_script}")
         
+        if not Path(reference).exists():
+            raise FileNotFoundError(f"Reference genome not found: {reference}")
+        
+        model_path = Path(clair3_path) / "models" / self.config['paths']['clair3_model']
+        if not model_path.exists():
+            raise FileNotFoundError(f"Clair3 model not found: {model_path}")
+        
+        clair3_output = output_dir / "variant_calling_output"
+        log_file = output_dir / "clair3.log"
+        
+        # Build command
         cmd = [
             f"{clair3_path}/run_clair3.sh",
             f"--bam_fn={bam_file}",
@@ -317,20 +341,48 @@ class AmpliconPipeline:
         if clair3_config.get('remove_intermediate'):
             cmd.append("--remove_intermediate_dir")
         
-        # Run Clair3
-        result = subprocess.run(cmd, cwd=output_dir, capture_output=True, text=True)
-        if result.returncode != 0:
-            logger.error(f"Clair3 failed: {result.stderr}")
-            raise RuntimeError(f"Clair3 variant calling failed: {result.stderr}")
+        logger.info(f"Running Clair3 command: {' '.join(cmd)}")
         
-        # Copy output files
+        # Prepare environment - activate conda environment if needed
+        env = os.environ.copy()
+        
+        # Run Clair3 with detailed logging
+        with open(log_file, 'w') as log:
+            log.write(f"Clair3 command: {' '.join(cmd)}\n")
+            log.write(f"Working directory: {output_dir}\n")
+            log.write(f"Environment PATH: {env.get('PATH', 'Not set')}\n\n")
+            log.flush()
+            
+            # Use bash to ensure conda environment is available
+            bash_cmd = f"cd {output_dir} && source activate ONT 2>/dev/null || true && {' '.join(cmd)}"
+            result = subprocess.run(['bash', '-c', bash_cmd], stdout=log, stderr=subprocess.STDOUT, text=True, env=env)
+            
+        # Check result and log details
+        if result.returncode != 0:
+            with open(log_file, 'r') as log:
+                log_content = log.read()
+            logger.error(f"Clair3 failed with return code {result.returncode}")
+            logger.error(f"Clair3 log content:\n{log_content}")
+            raise RuntimeError(f"Clair3 variant calling failed with return code {result.returncode}. Check {log_file} for details.")
+        
+        # Check if output files exist
         source_vcf = clair3_output / "merge_output.vcf.gz"
         source_tbi = clair3_output / "merge_output.vcf.gz.tbi"
+        
+        if not source_vcf.exists():
+            with open(log_file, 'r') as log:
+                log_content = log.read()
+            logger.error(f"Clair3 output file not found: {source_vcf}")
+            logger.error(f"Clair3 log content:\n{log_content}")
+            raise FileNotFoundError(f"Clair3 output file not found: {source_vcf}. Check {log_file} for details.")
+        
+        # Copy output files
         dest_vcf = output_dir / f"{episode}.wf_snp.vcf.gz"
         dest_tbi = output_dir / f"{episode}.wf_snp.vcf.gz.tbi"
         
         shutil.copy2(source_vcf, dest_vcf)
-        shutil.copy2(source_tbi, dest_tbi)
+        if source_tbi.exists():
+            shutil.copy2(source_tbi, dest_tbi)
         
         # Cleanup Clair3 output directory
         if clair3_config.get('remove_intermediate'):
