@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     liblzma-dev \
     libcurl4-openssl-dev \
     libssl-dev \
+    libhts-dev \
     samtools \
     tabix \
     awscli \
