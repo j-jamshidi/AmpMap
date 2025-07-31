@@ -81,6 +81,11 @@ COPY README.md ./
 # Install the application in ONT environment
 RUN /opt/conda/envs/ONT/bin/pip install -e .
 
+# Set environment variables to use built-in tools and reference
+ENV ONT_REFERENCE_GENOME=/opt/reference/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+ENV ONT_CLAIR3_PATH=/opt/bin
+ENV ONT_HAPCUT2_PATH=/opt/HapCUT2-1.3.4/build
+
 # Setup conda initialization and default environment
 RUN echo "source /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
     echo "conda activate ONT" >> ~/.bashrc

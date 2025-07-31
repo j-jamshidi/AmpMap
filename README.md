@@ -132,14 +132,13 @@ docker-compose run ont-amplicon-phase ont-amplicon-phase validate sample_sheet.c
 ### Method 2: Direct Docker Run
 
 ```bash
-# Run pipeline
+# Run pipeline (reference genome is built into container)
 docker run --rm \
-  -v /path/to/data:/EBSDataDrive/ONT/Runs \
-  -v /path/to/results:/EBSDataDrive/ONT/Runs/results \
+  -v /EBSDataDrive:/EBSDataDrive \
   -e AWS_ACCESS_KEY_ID=your_key \
   -e AWS_SECRET_ACCESS_KEY=your_secret \
   ont-amplicon-phase \
-  ont-amplicon-phase run RUN_001
+  ont-amplicon-phase run RUN_001 --input-dir /EBSDataDrive/ONT/Runs/RUN_001
 
 # Custom input/output directories
 docker run --rm \
