@@ -18,7 +18,6 @@ RUN apt-get update && apt-get install -y \
     samtools \
     tabix \
     awscli \
-    docker.io \
     && rm -rf /var/lib/apt/lists/*
 
 # Install htslib from source for HapCUT2
@@ -44,7 +43,26 @@ RUN /opt/conda/envs/ONT/bin/pip install --no-cache-dir \
     pyyaml>=6.0 \
     jsonschema>=4.0.0
 
-# Note: Clair3 Docker image will be pulled on first use
+# Install Clair3 directly with conda
+RUN conda create -c conda-forge -c bioconda -n clair3 python=3.9 tensorflow=2.15.0 whatshap samtools parallel xz zlib bzip2 automake curl pigz cffi make gcc -y
+
+# Clone and build Clair3
+RUN cd /opt && \
+    git clone --branch v1.0.8 --depth 1 https://github.com/HKU-BAL/Clair3.git && \
+    cd Clair3 && \
+    /opt/conda/envs/clair3/bin/make PREFIX=/opt/conda/envs/clair3 && \
+    mkdir -p models && \
+    cd models && \
+    wget http://www.bio8.cs.hku.hk/clair3/clair3_models/r1041_e82_400bps_sup_v500.tar.gz && \
+    tar -zxf r1041_e82_400bps_sup_v500.tar.gz && \
+    rm r1041_e82_400bps_sup_v500.tar.gz
+
+# Install pypy in clair3 environment
+RUN cd /opt/conda/envs/clair3/bin && \
+    wget https://downloads.python.org/pypy/pypy3.10-v7.3.19-linux64.tar.bz2 && \
+    tar -jxf pypy3.10-v7.3.19-linux64.tar.bz2 && \
+    ln -sf pypy3.10-v7.3.19-linux64/bin/pypy3 pypy3 && \
+    rm pypy3.10-v7.3.19-linux64.tar.bz2
 
 # Install HapCUT2 (pinned version)
 RUN cd /opt && \
@@ -60,16 +78,6 @@ RUN mkdir -p /opt/reference && \
     gunzip GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz && \
     samtools faidx GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
 
-# Create Clair3 wrapper script that pulls image if needed
-RUN mkdir -p /opt/bin && \
-    echo '#!/bin/bash' > /opt/bin/run_clair3.sh && \
-    echo 'if ! docker image inspect hkubal/clair3:latest >/dev/null 2>&1; then' >> /opt/bin/run_clair3.sh && \
-    echo '  echo "Pulling Clair3 Docker image..."' >> /opt/bin/run_clair3.sh && \
-    echo '  docker pull hkubal/clair3:latest' >> /opt/bin/run_clair3.sh && \
-    echo 'fi' >> /opt/bin/run_clair3.sh && \
-    echo 'docker run --rm -v "$PWD":"$PWD" hkubal/clair3:latest /opt/bin/run_clair3.sh "$@"' >> /opt/bin/run_clair3.sh && \
-    chmod +x /opt/bin/run_clair3.sh
-
 # Set working directory
 WORKDIR /app
 
@@ -83,7 +91,7 @@ RUN /opt/conda/envs/ONT/bin/pip install -e .
 
 # Set environment variables to use built-in tools and reference
 ENV ONT_REFERENCE_GENOME=/opt/reference/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
-ENV ONT_CLAIR3_PATH=/opt/bin
+ENV ONT_CLAIR3_PATH=/opt/Clair3
 ENV ONT_HAPCUT2_PATH=/opt/HapCUT2-1.3.4/build
 
 # Setup conda initialization and default environment

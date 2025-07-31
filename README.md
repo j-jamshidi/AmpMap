@@ -146,7 +146,7 @@ docker run --rm \
   -v /path/to/output:/output \
   -e AWS_ACCESS_KEY_ID=your_key \
   ont-amplicon-phase \
-  ont-amplicon-phase run RUN_001 --input-dir /input --output-dir /output
+  ont-amplicon-phase run --input-dir /input --output-dir /output
 ```
 
 ### Docker Environment Variables
