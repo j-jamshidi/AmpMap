@@ -53,9 +53,9 @@ RUN cd /opt && \
     bash -c "source /opt/conda/etc/profile.d/conda.sh && conda activate clair3 && make PREFIX=/opt/conda/envs/clair3" && \
     mkdir -p models && \
     cd models && \
-    wget http://www.bio8.cs.hku.hk/clair3/clair3_models/r1041_e82_400bps_sup_v500.tar.gz && \
-    tar -zxf r1041_e82_400bps_sup_v500.tar.gz && \
-    rm r1041_e82_400bps_sup_v500.tar.gz
+    wget http://www.bio8.cs.hku.hk/clair3/clair3_models/clair3_models.tar.gz && \
+    tar -zxf clair3_models.tar.gz && \
+    rm clair3_models.tar.gz
 
 # Install pypy in clair3 environment
 RUN cd /opt/conda/envs/clair3/bin && \
