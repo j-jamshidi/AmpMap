@@ -135,9 +135,10 @@ docker-compose run ont-amplicon-phase ont-amplicon-phase validate sample_sheet.c
 ### Method 2: Direct Docker Run
 
 ```bash
-# Run pipeline (run name automatically derived from input folder)
+# Run pipeline (uses modular Docker containers)
 docker run --rm \
   -v /EBSDataDrive:/EBSDataDrive \
+  -v /var/run/docker.sock:/var/run/docker.sock \
   -e AWS_ACCESS_KEY_ID=your_key \
   -e AWS_SECRET_ACCESS_KEY=your_secret \
   ont-amplicon-phase \
@@ -147,6 +148,7 @@ docker run --rm \
 docker run --rm \
   -v /path/to/input:/input \
   -v /path/to/output:/output \
+  -v /var/run/docker.sock:/var/run/docker.sock \
   -e AWS_ACCESS_KEY_ID=your_key \
   ont-amplicon-phase \
   ont-amplicon-phase run --input-dir /input --output-dir /output
