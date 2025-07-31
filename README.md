@@ -18,11 +18,11 @@ See [Docker Usage](#docker-usage) section below for complete instructions.
 ## Usage
 
 ```bash
-# Basic run
-ont-amplicon-phase run RUN_001
+# Basic run (uses current directory name as run ID)
+ont-amplicon-phase run
 
 # Custom paths
-ont-amplicon-phase run RUN_001 \
+ont-amplicon-phase run \
     --input-dir /path/to/data \
     --output-dir /path/to/results
 
@@ -123,7 +123,7 @@ export AWS_ACCESS_KEY_ID=your_key
 export AWS_SECRET_ACCESS_KEY=your_secret
 
 # Run pipeline
-docker-compose run ont-amplicon-phase ont-amplicon-phase run RUN_001
+docker-compose run ont-amplicon-phase ont-amplicon-phase run --input-dir /EBSDataDrive/ONT/Runs/Batch11
 
 # Validate sample sheet
 docker-compose run ont-amplicon-phase ont-amplicon-phase validate sample_sheet.csv
@@ -132,13 +132,13 @@ docker-compose run ont-amplicon-phase ont-amplicon-phase validate sample_sheet.c
 ### Method 2: Direct Docker Run
 
 ```bash
-# Run pipeline (reference genome is built into container)
+# Run pipeline (run name automatically derived from input folder)
 docker run --rm \
   -v /EBSDataDrive:/EBSDataDrive \
   -e AWS_ACCESS_KEY_ID=your_key \
   -e AWS_SECRET_ACCESS_KEY=your_secret \
   ont-amplicon-phase \
-  ont-amplicon-phase run RUN_001 --input-dir /EBSDataDrive/ONT/Runs/RUN_001
+  ont-amplicon-phase run --input-dir /EBSDataDrive/ONT/Runs/Batch11
 
 # Custom input/output directories
 docker run --rm \

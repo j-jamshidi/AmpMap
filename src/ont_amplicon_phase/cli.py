@@ -48,7 +48,6 @@ def main(ctx: click.Context, config: Optional[Path], log_level: str) -> None:
 
 
 @main.command()
-@click.argument('run_id', type=str)
 @click.option('--input-dir', '-i', type=click.Path(exists=True, path_type=Path),
               help='Input directory containing BAM files and sample sheet')
 @click.option('--output-dir', '-o', type=click.Path(path_type=Path),
@@ -64,7 +63,7 @@ def main(ctx: click.Context, config: Optional[Path], log_level: str) -> None:
 @click.option('--no-xml', is_flag=True, default=False,
               help='Skip XML generation')
 @click.pass_context
-def run(ctx: click.Context, run_id: str, input_dir: Optional[Path], 
+def run(ctx: click.Context, input_dir: Optional[Path], 
         output_dir: Optional[Path], sample_sheet: Optional[Path],
         clean: bool, dry_run: bool, no_upload: bool, no_xml: bool) -> None:
     """Run the complete amplicon analysis pipeline."""
@@ -72,9 +71,14 @@ def run(ctx: click.Context, run_id: str, input_dir: Optional[Path],
     config_manager = ctx.obj['config']
     logger = logging.getLogger(__name__)
     
-    # Set default paths if not provided
+    # Set default input directory to current working directory if not provided
     if not input_dir:
-        input_dir = Path.cwd() / run_id
+        input_dir = Path.cwd()
+    
+    # Automatically derive run_id from input directory name
+    run_id = input_dir.name
+    
+    # Set default paths
     if not output_dir:
         output_dir = input_dir / "results"
     if not sample_sheet:

@@ -311,9 +311,7 @@ class AmpliconPipeline:
         if not Path(reference).exists():
             raise FileNotFoundError(f"Reference genome not found: {reference}")
         
-        model_path = Path(clair3_path) / "models" / self.config['paths']['clair3_model']
-        if not model_path.exists():
-            raise FileNotFoundError(f"Clair3 model not found: {model_path}")
+        # Model path validation moved below after detection
         
         clair3_output = output_dir / "variant_calling_output"
         log_file = output_dir / "clair3.log"
@@ -323,7 +321,7 @@ class AmpliconPipeline:
         docker_wrapper = Path("/opt/bin/run_clair3.sh")
         
         if docker_wrapper.exists():
-            # Docker installation
+            # Docker installation - model is inside Clair3 container
             cmd = [str(docker_wrapper)]
             model_path = f"/opt/models/{self.config['paths']['clair3_model']}"
         elif clair3_script.exists():
@@ -332,6 +330,11 @@ class AmpliconPipeline:
             model_path = f"{clair3_path}/models/{self.config['paths']['clair3_model']}"
         else:
             raise FileNotFoundError(f"Clair3 not found. Checked: {docker_wrapper} and {clair3_script}")
+        
+        # Skip model path validation for Docker since it's inside the Clair3 container
+        if not docker_wrapper.exists():
+            if not Path(model_path).exists():
+                raise FileNotFoundError(f"Clair3 model not found: {model_path}")
         
         cmd.extend([
             f"--bam_fn={bam_file}",
