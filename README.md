@@ -5,10 +5,13 @@ A bioinformatics pipeline for analyzing barcoded amplicon sequences from Oxford 
 ## Installation
 
 ```bash
-# Clone and install
+# Clone and install (automatically sets up Clair3)
 git clone https://github.com/your-org/ont-amplicon-phase.git
 cd ont-amplicon-phase
 pip install .
+
+# Set environment variable
+export ONT_CLAIR3_PATH="${HOME}/Clair3"
 ```
 
 ### Docker
@@ -171,9 +174,20 @@ ONT_LOG_LEVEL=DEBUG
 ## Requirements
 
 - Python 3.9+
-- Conda environment with ONT tools
-- Clair3, WhatsHap, HapCUT2
+- Conda (for Clair3 environment)
 - AWS credentials (for S3 upload)
+
+### Manual Setup (if automatic setup fails)
+
+If the automatic Clair3 setup fails during installation:
+
+```bash
+# Setup Clair3 environment manually
+./setup_clair3.sh
+
+# Set environment variable
+export ONT_CLAIR3_PATH="${HOME}/Clair3"
+```
 
 ## Development
 
