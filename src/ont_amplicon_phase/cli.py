@@ -3,6 +3,8 @@
 import click
 import logging
 import sys
+import os
+import subprocess
 from pathlib import Path
 from typing import Optional
 
@@ -23,6 +25,45 @@ def setup_logging(level: str = "INFO") -> None:
     )
 
 
+def setup_clair3_environment() -> None:
+    """Setup Clair3 conda environment."""
+    subprocess.run(['conda', '--version'], check=True, capture_output=True)
+    
+    cmd = [
+        'conda', 'create', '-c', 'conda-forge', '-c', 'bioconda', 
+        '-n', 'clair3', 'python=3.9', 'tensorflow=2.15.0', 
+        'whatshap', 'samtools', 'parallel', 'xz', 'zlib', 'bzip2', 
+        'automake', 'curl', 'pigz', 'cffi', 'make', 'gcc', '-y'
+    ]
+    subprocess.run(cmd, check=True, capture_output=True)
+    
+    home_dir = os.path.expanduser('~')
+    clair3_dir = os.path.join(home_dir, 'Clair3')
+    
+    if not os.path.exists(clair3_dir):
+        subprocess.run(['git', 'clone', 'https://github.com/HKU-BAL/Clair3.git', clair3_dir], check=True)
+        
+        result = subprocess.run(['conda', 'info', '--envs'], capture_output=True, text=True)
+        clair3_prefix = None
+        for line in result.stdout.split('\n'):
+            if 'clair3' in line:
+                clair3_prefix = line.split()[-1]
+                break
+        
+        if clair3_prefix:
+            env = os.environ.copy()
+            env['PREFIX'] = clair3_prefix
+            subprocess.run(['make'], cwd=clair3_dir, env=env, check=True)
+            
+            models_dir = os.path.join(clair3_dir, 'models')
+            os.makedirs(models_dir, exist_ok=True)
+            
+            model_url = 'http://www.bio8.cs.hku.hk/clair3/clair3_models/clair3_models.tar.gz'
+            subprocess.run(['wget', model_url], cwd=models_dir, check=True)
+            subprocess.run(['tar', '-zxf', 'clair3_models.tar.gz'], cwd=models_dir, check=True)
+            subprocess.run(['rm', 'clair3_models.tar.gz'], cwd=models_dir, check=True)
+
+
 @click.group()
 @click.option('--config', '-c', type=click.Path(exists=True, path_type=Path),
               help='Path to configuration file')
@@ -36,6 +77,18 @@ def main(ctx: click.Context, config: Optional[Path], log_level: str) -> None:
     
     # Load configuration
     config_manager = load_config(config)
+    
+    # Check if Clair3 needs setup
+    clair3_path = os.environ.get('ONT_CLAIR3_PATH', f"{os.path.expanduser('~')}/Clair3")
+    if not os.path.exists(clair3_path):
+        click.echo(f"Clair3 not found at {clair3_path}. Setting up Clair3...")
+        try:
+            setup_clair3_environment()
+            click.echo("✓ Clair3 setup complete!")
+        except Exception as e:
+            click.echo(f"Clair3 setup failed: {e}", err=True)
+            click.echo("Please run: ./setup_clair3.sh manually", err=True)
+            sys.exit(1)
     
     # Validate configuration
     if not config_manager.validate_paths():

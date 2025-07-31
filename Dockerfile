@@ -50,7 +50,7 @@ RUN conda create -c conda-forge -c bioconda -n clair3 python=3.9 tensorflow=2.15
 RUN cd /opt && \
     git clone --branch v1.0.8 --depth 1 https://github.com/HKU-BAL/Clair3.git && \
     cd Clair3 && \
-    /opt/conda/envs/clair3/bin/make PREFIX=/opt/conda/envs/clair3 && \
+    bash -c "source /opt/conda/etc/profile.d/conda.sh && conda activate clair3 && make PREFIX=/opt/conda/envs/clair3" && \
     mkdir -p models && \
     cd models && \
     wget http://www.bio8.cs.hku.hk/clair3/clair3_models/r1041_e82_400bps_sup_v500.tar.gz && \
