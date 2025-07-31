@@ -346,7 +346,7 @@ class AmpliconPipeline:
             f"--var_pct_full={clair3_config['var_pct_full']}",
             f"--ref_pct_full={clair3_config['ref_pct_full']}",
             f"--var_pct_phasing={clair3_config['var_pct_phasing']}"
-        ]
+        ])
         
         if clair3_config.get('enable_phasing'):
             cmd.append("--enable_phasing")
