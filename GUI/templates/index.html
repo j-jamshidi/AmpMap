@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ONT File Manager</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/igv@2.8.7/dist/igv.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/igv@2.8.7/dist/igv.min.css">
+    <style>
+        .main-container {
+            padding: 20px;
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+        .content-panel {
+            margin-top: 20px;
+        }
+        .download-button {
+            margin: 5px 0;
+        }
+        #runReportContent {
+            width: 100%;
+            height: calc(100vh - 100px);
+            border: none;
+        }
+        .ui.tab {
+            width: 100%;
+        }
+        .left-panel {
+            width: 20%;
+            float: left;
+            padding-right: 20px;
+            background-color: #f0f0f0; /* Pale gray background */
+            padding: 20px;
+            height: calc(100vh - 30px); /* Adjust height based on banner height */
+        }
+        .right-panel {
+            width: 75%;
+            float: left;
+            height: calc(100vh - 30px); /* Adjust height based on banner height */
+            overflow-y: auto; /* Make right panel scrollable */
+        }
+        .banner {
+            background-color: rgb(1, 84, 111);
+            color: white;
+            padding: 15px; /* 1.5x taller */
+            text-align: left;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+        .loading-indicator {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        #sampleReportContent {
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .bold-blue {
+            font-weight: bold;
+            color: rgb(12, 72, 112);
+        }
+        .bold-green {
+            font-weight: bold;
+            color: rgb(1, 122, 1);
+        }
+        .bold-red {
+            font-weight: bold;
+            color: red;
+        }
+        .bold-black {
+            font-weight: bold;
+            color: black;
+        }
+        .green {
+            color: rgb(29, 130, 20);
+        }
+        .foldable-section {
+            margin-bottom: 10px;
+        }
+        .foldable-header {
+            cursor: pointer;
+        }
+        .foldable-content {
+            display: block; /* Make all sections expanded by default */
+            margin-left: 10px;
+        }
+        #igvDiv {
+            width: 100%;
+            height: 500px;
+        }
+        #ampliconChart {
+            width: 100%;
+            height: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div class="banner">Long-read Sequencing Reports</div>
+    <div class="ui container main-container">
+        <div class="left-panel">
+            <div class="ui form">
+                <div class="field">
+                    <label>Select a Run:</label>
+                    <div class="ui search selection dropdown" id="runSelect">
+                        <input type="hidden" name="run">
+                        <i class="dropdown icon"></i>
+                        <div class="default text">Select Run</div>
+                        <div class="menu"></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Select a Sample:</label>
+                    <div class="ui search selection dropdown" id="sampleSelect">
+                        <input type="hidden" name="sample">
+                        <i class="dropdown icon"></i>
+                        <div class="default text">Select Sample</div>
+                        <div class="menu"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="ui vertical menu">
+                <a class="active item" data-tab="run-report">Run Report</a>
+                <a class="item" data-tab="sample-report">Sample Report</a>
+                <a class="item" data-tab="downloads">Downloads</a>
+                <a class="item" data-tab="igv-view">IGV View</a>
+                <a class="item" data-tab="amplicon-data">Amplicon Data</a>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="ui top attached tabular menu" style="display: none;">
+                <a class="active item" data-tab="run-report">Run Report</a>
+                <a class="item" data-tab="sample-report">Sample Report</a>
+                <a class="item" data-tab="downloads">Downloads</a>
+                <a class="item" data-tab="igv-view">IGV View</a>
+                <a class="item" data-tab="amplicon-data">Amplicon Data</a>
+            </div>
+            
+            <div class="ui bottom attached active tab segment" data-tab="run-report">
+                <iframe id="runReportContent"></iframe>
+                <div class="loading-indicator" id="runReportLoading">Loading...</div>
+            </div>
+            
+            <div class="ui bottom attached tab segment" data-tab="sample-report">
+                <pre id="sampleReportContent"></pre>
+            </div>
+            
+            <div class="ui bottom attached tab segment" data-tab="downloads">
+                <div id="downloadContent">
+                    <h3>XML File</h3>
+                    <div class="ui buttons">
+                        <button class="ui button download-button" data-type="xml">Download XML</button>
+                    </div>
+                    <h3>Log Files</h3>
+                    <div class="ui buttons">
+                        <button class="ui button download-button" data-type="HapCUT2">Download HapCUT2 log</button>
+                        <button class="ui button download-button" data-type="WhatsHap">Download WhatsHap log</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ui bottom attached tab segment" data-tab="igv-view">
+                <div id="igvDiv"></div>
+            </div>
+
+            <div class="ui bottom attached tab segment" data-tab="amplicon-data">
+                <canvas id="ampliconChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize dropdowns and tabs
+            $('.ui.dropdown').dropdown();
+            $('.menu .item').tab();
+    
+            // Load runs
+            $.get('/api/runs', function(runs) {
+                const runMenu = $('#runSelect .menu');
+                runs.forEach(run => {
+                    runMenu.append(`<div class="item" data-value="${run}">${run}</div>`);
+                });
+            });
+    
+            // Run selection handler
+            $('#runSelect').dropdown({
+                onChange: function(value) {
+                    if (!value) return;
+    
+                    // Show loading indicator
+                    $('#runReportLoading').show();
+                    $('#runReportContent').hide();
+    
+                    // Load run HTML into iframe
+                    $('#runReportContent').attr('src', `/api/runs/${value}/html`);
+    
+                    // Hide loading indicator once iframe is loaded
+                    $('#runReportContent').on('load', function() {
+                        $('#runReportLoading').hide();
+                        $('#runReportContent').show();
+                    });
+    
+                    // Reset and load samples
+                    $('#sampleSelect').dropdown('clear');
+                    $.get(`/api/runs/${value}/samples`, function(samples) {
+                        console.log("Received samples:", samples);  // Debug log
+                        const sampleMenu = $('#sampleSelect .menu');
+                        sampleMenu.empty();
+                        samples.forEach(sample => {
+                            sampleMenu.append(`<div class="item" data-value="${sample}">${sample}</div>`);
+                        });
+                        $('#sampleSelect').dropdown('refresh');  // Corrected line
+                    });
+                }
+            });
+    
+            // Sample selection handler
+            $('#sampleSelect').dropdown({
+                onChange: function(value) {
+                    if (!value) return;
+                    const runId = $('#runSelect').dropdown('get value');
+    
+                    // Load sample report
+                    $.get(`/api/runs/${runId}/samples/${value}/report`, function(report) {
+                        // Process the report to apply the required styles
+                        const lines = report.split('\n');
+                        let sections = [];
+                        let currentSection = [];
+    
+                        lines.forEach(line => {
+                            line = line.trim(); // Remove leading and trailing whitespace
+                            if (line.startsWith('=')) {
+                                if (currentSection.length > 0) {
+                                    sections.push(currentSection);
+                                }
+                                currentSection = [line];
+                            } else {
+                                currentSection.push(line);
+                            }
+                        });
+                        if (currentSection.length > 0) {
+                            sections.push(currentSection);
+                        }
+    
+                        const processedReport = sections.map((section, index) => {
+                            const header = section[0];
+                            const content = section.slice(1).map(line => {
+                                if (line.startsWith('*')) {
+                                    return line.includes('PASSED') ? `<span class="bold-green">${line}</span>` : `<span class="bold-red">${line}</span>`;
+                                } else if (line.startsWith('Counting') || line.startsWith('WhatsHap') || line.startsWith('HapCUT2')) {
+                                    return line.replace(/(Cis|Trans)/g, '<strong>$1</strong>');
+                                } else if (line.endsWith('<-')) {
+                                    return `<span class="green">${line}</span>`;
+                                } else {
+                                    return line;
+                                }
+                            }).join('<br>'); // Use <br> to preserve line breaks
+    
+                            if (index === 0) {
+                                return `<strong class="bold-blue" style="font-size: 1.2em;">${header}</strong><div>${content}</div>`;
+                            } else {
+                                return `<div class="foldable-section"><strong class="bold-blue foldable-header">${header}</strong><div class="foldable-content">${content}</div></div>`;
+                            }
+                        }).join('');
+    
+                        // Update the HTML content of the sample report
+                        $('#sampleReportContent').html(processedReport);
+    
+                        // Automatically switch to the sample report tab
+                        $('.menu .item[data-tab="sample-report"]').tab('change tab', 'sample-report');
+    
+                        // Add click event listener to foldable headers
+                        $('.foldable-header').click(function() {
+                            $(this).next('.foldable-content').toggle();
+                        });
+                    });
+
+                    // Load IGV view
+                    $.get(`/api/runs/${runId}/samples/${value}/xml`, function(xmlUrl) {
+                        if (xmlUrl) {
+                            const igvOptions = {
+                                genome: "hg19",
+                                locus: "chr1:155,000,000-156,000,000",
+                                tracks: [
+                                    {
+                                        name: "Sample XML",
+                                        url: xmlUrl,
+                                        format: "xml"
+                                    }
+                                ]
+                            };
+                            // Ensure the IGV view tab is active before initializing the browser
+                            $('.menu .item[data-tab="igv-view"]').tab({
+                                onVisible: function() {
+                                    igv.createBrowser(document.getElementById("igvDiv"), igvOptions);
+                                }
+                            });
+                        } else {
+                            console.error("XML URL not found");
+                        }
+                    }).fail(function() {
+                        console.error("Failed to load XML URL");
+                    });
+
+                    // Highlight selected sample in scatter plot
+                    $.get('/api/amplicon_data', function(data) {
+                        const ctx = document.getElementById('ampliconChart').getContext('2d');
+                        const chartData = {
+                            datasets: [{
+                                label: 'Amplicon Data',
+                                data: data.map(item => ({
+                                    x: item[2], // amplicon_size
+                                    y: item[3] > 0 ? item[3] : item[4], // total_high_quality_spanning_reads or passing_qc_reads
+                                    r: Math.log10(item[4]), // total_reads in log scale
+                                    sample: item[1], // sample_id
+                                    backgroundColor: item[1] === value ? 'rgba(0, 0, 139, 0.8)' : 'rgba(54, 162, 235, 0.6)', // dark blue for selected sample
+                                    borderColor: item[1] === value ? 'rgba(0, 0, 139, 1)' : 'rgba(54, 162, 235, 1)', // dark blue for selected sample
+                                    borderWidth: 1,
+                                    radius: item[1] === value ? 10 : 5 // 10% larger for selected sample
+                                }))
+                            }]
+                        };
+                        const chartOptions = {
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Amplicon Size'
+                                    }
+                                },
+                                y: {
+                                    type: 'logarithmic',
+                                    title: {
+                                        display: true,
+                                        text: 'Total High Quality Spanning Reads'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const data = context.raw;
+                                            return `Sample: ${data.sample}, Amplicon Size: ${data.x}, Total High Quality Spanning Reads: ${data.y}, Total Reads: ${Math.pow(10, data.r)}`;
+                                        }
+                                    }
+                                }
+                            }
+                        };
+                        new Chart(ctx, {
+                            type: 'bubble',
+                            data: chartData,
+                            options: chartOptions
+                        });
+                    });
+                }
+            });
+    
+            // Download handler
+            $('.download-button').click(function() {
+                const runId = $('#runSelect').dropdown('get value');
+                const sampleId = $('#sampleSelect').dropdown('get value');
+                const fileType = $(this).data('type');
+    
+                if (runId && sampleId) {
+                    window.location.href = `/api/runs/${runId}/samples/${sampleId}/download/${fileType}`;
+                } else {
+                    alert('Please select both a run and a sample first.');
+                }
+            });
+
+            // Load Amplicon Data and create scatter chart
+            $.get('/api/amplicon_data', function(data) {
+                const ctx = document.getElementById('ampliconChart').getContext('2d');
+                const chartData = {
+                    datasets: [{
+                        label: 'Amplicon Data',
+                        data: data.map(item => ({
+                            x: item[2], // amplicon_size
+                            y: item[3] > 0 ? item[3] : item[4], // total_high_quality_spanning_reads or passing_qc_reads
+                            r: Math.log10(item[4]), // total_reads in log scale
+                            sample: item[1] // sample_id
+                        })),
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                };
+                const chartOptions = {
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Amplicon Size'
+                            }
+                        },
+                        y: {
+                            type: 'logarithmic',
+                            title: {
+                                display: true,
+                                text: 'Total High Quality Spanning Reads'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const data = context.raw;
+                                    return `Sample: ${data.sample}, Amplicon Size: ${data.x}, Total High Quality Spanning Reads: ${data.y}, Total Reads: ${Math.pow(10, data.r)}`;
+                                }
+                            }
+                        }
+                    }
+                };
+                new Chart(ctx, {
+                    type: 'bubble',
+                    data: chartData,
+                    options: chartOptions
+                });
+            });
+        });
+    </script>
+</body>
+</html>
