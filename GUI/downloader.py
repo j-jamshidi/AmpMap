@@ -11,7 +11,7 @@ class RemoteFileMonitor:
                  hostname='ubuntu@3.24.162.88',
                  base_path='/EBSDataDrive/ONT/Runs',
                  local_path='/Users/javadjamshidi/Desktop/Runs',
-                 pem_path='/Volumes/NanoDisk2/gaia-ec2-chromwell.pem'):
+                 pem_path='/Volumes/1-ONT_Refs/gaia-ec2-chromwell.pem'):
         """
         Initialize the Remote File Monitor
         
@@ -191,6 +191,6 @@ if __name__ == "__main__":
         hostname='ubuntu@3.24.162.88',
         base_path='/EBSDataDrive/ONT/Runs',
         local_path='/Users/javadjamshidi/Desktop/Runs',
-        pem_path='/Volumes/NanoDisk2/gaia-ec2-chromwell.pem'
+        pem_path='/Volumes/1-ONT_Refs/gaia-ec2-chromwell.pem'
     )
     monitor.run()

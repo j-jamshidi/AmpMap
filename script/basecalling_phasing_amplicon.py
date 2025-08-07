@@ -1,21 +1,21 @@
 import pysam
-import argparse
-import subprocess
-from collections import Counter
-import whatshap
-from whatshap.vcf import VcfReader, VariantTable
-from whatshap.align import edit_distance
-from whatshap.variants import ReadSetReader
 import os
 import sys
-from typing import Optional, Tuple, List
+from typing import List, Tuple
 from pathlib import Path
-from quality_control import get_allele, validate_variants
-
-
+from quality_control import get_allele
 
 def compare_variants(dummy_vcf: str, variant_calling_vcf: str) -> List[Tuple[str, int, str, str]]:
-
+    """
+    Compare variants between dummy VCF and variant calling VCF.
+    
+    Args:
+        dummy_vcf (str): Path to the dummy VCF file
+        variant_calling_vcf (str): Path to the variant calling VCF file
+    
+    Returns:
+        List of variants found in both files, with details about matching status
+    """
     # Read dummy VCF variants
     dummy_variants = []
     with open(dummy_vcf, 'r') as f:
@@ -61,6 +61,14 @@ def compare_variants(dummy_vcf: str, variant_calling_vcf: str) -> List[Tuple[str
     return matched_variants
 
 def write_variant_comparison_results(dummy_vcf: str, variant_calling_vcf: str, output_file: str):
+    """
+    Write variant comparison results to the report file.
+    
+    Args:
+        report_file: File handle for the report
+        dummy_vcf (str): Path to the dummy VCF file
+        variant_calling_vcf (str): Path to the variant calling VCF file
+    """    
     # Ensure dummy VCF exists
     if not os.path.exists(dummy_vcf):
         print(f"Error: Dummy VCF file does not exist at {dummy_vcf}")
@@ -139,12 +147,6 @@ def write_variant_comparison_results(dummy_vcf: str, variant_calling_vcf: str, o
         print(f"Error during variant comparison: {e}")
         import traceback
         traceback.print_exc()
-
-def normalize_allele(allele: str) -> str:
-    """Normalize allele to uppercase and replace empty alleles with <DEL>."""
-    if allele == "":
-        return "<DEL>"
-    return allele.upper()
 
 def analyze_reads(bam_file, vcf_file):
     """
@@ -239,10 +241,6 @@ def main():
     # Create output names
     output_bam = bam_file.removesuffix('.bam') + "_phased.bam"
     output_txt = bam_file.removesuffix('.bam') + "_report.txt"
-
-
-    
-
 
     with open(output_txt, 'a') as output_file:
         original_stdout = sys.stdout
