@@ -259,9 +259,17 @@ process_samples() {
             else
                 # Run Quality Control first to create clean-span-hq.bam
                 cd "$current_dir" || exit
-                python "${SCRIPT_PATH}/quality_control.py" \
+                python "${SCRIPT_PATH}/phasing_variants_qc.py" \
                     "${WORKDIR}/${Barcode}/${Episode}.bam" \
                     "${WORKDIR}/${Barcode}/${Episode}.vcf"
+                
+                # Run variant comparison
+                if [[ -f "${WORKDIR}/${Barcode}/${Episode}.vcf" ]] && [[ -f "${WORKDIR}/${Barcode}/${Episode}.wf_snp.vcf.gz" ]]; then
+                    python "${SCRIPT_PATH}/variant_comparison.py" \
+                        "${WORKDIR}/${Barcode}/${Episode}.vcf" \
+                        "${WORKDIR}/${Barcode}/${Episode}.wf_snp.vcf.gz" \
+                        "${WORKDIR}/${Barcode}/${Episode}_report.txt"
+                fi
                 
                 # Then run WhatsHap and HapCUT2 Phasing (only for two variants)
                 run_whatshap "$Barcode" "$Episode"

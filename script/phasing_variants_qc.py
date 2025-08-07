@@ -363,7 +363,7 @@ def main():
     Main function to run quality control and create clean spanning BAM file.
     """
     if len(sys.argv) != 3:
-        print("Usage: python quality_control.py <input.bam> <input.vcf>")
+        print("Usage: python phasing_variants_qc.py <input.bam> <input.vcf>")
         sys.exit(1)
     
     bam_file = sys.argv[1]

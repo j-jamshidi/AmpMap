@@ -5,7 +5,7 @@ import numpy as np
 from pathlib import Path
 import sys
 from collections import defaultdict
-from basecalling_phasing_amplicon import compare_variants, write_variant_comparison_results
+from variant_comparison import compare_variants
 
 def calculate_quality_stats(qualities):
     """Calculate mean quality and percentage of bases above Q10"""
