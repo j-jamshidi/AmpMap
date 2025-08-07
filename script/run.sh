@@ -14,6 +14,7 @@ WORKDIR="${BASEDIR}/result"
 # Reference and tool paths
 #Clair3 docker image. docker pull hkubal/clair3:latest
 #HapCUT2 docker image. docker pull javadj/hapcut2:latest
+#WhatsHap docker image. docker pull javadj/whatshap:latest
 REFERENCE="/EFSGaiaDataDrive/ref/ONT/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna"
 SCRIPT_PATH="/EBSDataDrive/ONT/script"
 
@@ -136,15 +137,35 @@ run_whatshap() {
     # Index the input BAM file
     samtools index "${clean_span_bam}" 2>"${whatshap_log}"
 
-    # Run WhatsHap phase
-    if whatshap phase -o "${phased_vcf}" --reference "${REFERENCE}" --internal-downsampling 23 --ignore-read-groups "${vcf_file}" "${clean_span_bam}" >>"${whatshap_log}" 2>&1; then
+    # Run WhatsHap phase using Docker
+    if docker run --rm \
+        -v "${WORKDIR}:/data" \
+        -v "$(dirname "${REFERENCE}"):/refs" \
+        javadj/whatshap:latest \
+        phase -o "/data/${barcode}/${episode}_Phased.vcf" \
+        --reference "/refs/$(basename "${REFERENCE}")" \
+        --internal-downsampling 23 \
+        --ignore-read-groups \
+        "/data/${barcode}/${episode}.vcf" \
+        "/data/${barcode}/clean-span-hq.bam" >>"${whatshap_log}" 2>&1; then
+        
         # Compress and index the phased VCF only if phase succeeded
         if [[ -f "${phased_vcf}" ]]; then
             bgzip -f "${phased_vcf}"
             tabix -p vcf "${phased_vcf_gz}"
 
-            # Run WhatsHap haplotag
-            if whatshap haplotag --tag-supplementary -o "${output_bam}" --reference "${REFERENCE}" "${phased_vcf_gz}" "${clean_span_bam}" --ignore-read-groups >>"${whatshap_log}" 2>&1; then
+            # Run WhatsHap haplotag using Docker
+            if docker run --rm \
+                -v "${WORKDIR}:/data" \
+                -v "$(dirname "${REFERENCE}"):/refs" \
+                javadj/whatshap:latest \
+                haplotag --tag-supplementary \
+                -o "/data/${barcode}/${episode}_phased.bam" \
+                --reference "/refs/$(basename "${REFERENCE}")" \
+                "/data/${barcode}/${episode}_Phased.vcf.gz" \
+                "/data/${barcode}/clean-span-hq.bam" \
+                --ignore-read-groups >>"${whatshap_log}" 2>&1; then
+                
                 # Index the output BAM only if haplotag succeeded
                 samtools index "${output_bam}"
                 log "WhatsHap analysis finished successfully!"
@@ -253,7 +274,7 @@ process_samples() {
             # Final Analysis and Cleanup
             log "Analyzing the reads and writing the results for ${Barcode}, ${Episode}..."
             if [[ ! "$Variant1" =~ chr ]] || [[ ! "$Variant2" =~ chr ]]; then
-                python "${SCRIPT_PATH}/basecalling_QC_amplicon.py" \
+                python "${SCRIPT_PATH}/localise_amplicon.py" \
                     "${WORKDIR}/${Barcode}/${Episode}.bam" \
                     "${WORKDIR}/${Barcode}/${Episode}_coordinate.bed"
             else
@@ -276,7 +297,7 @@ process_samples() {
                 run_hapcut2 "$Barcode" "$Episode"
                 
                 # Finally run the remaining analysis
-                python "${SCRIPT_PATH}/basecalling_phasing_amplicon.py" \
+                python "${SCRIPT_PATH}/phase_amplicon.py" \
                     "${WORKDIR}/${Barcode}/${Episode}.bam" \
                     "${WORKDIR}/${Barcode}/${Episode}.vcf"
             fi
