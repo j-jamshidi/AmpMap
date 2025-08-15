@@ -214,7 +214,7 @@ run_hapcut2() {
 # Prepare input file
 prepare_input_file() {
     # Remove header from CSV file and create info file
-    tail -n +2 "${BASEDIR}/sample_sheet.csv" > "${BASEDIR}/temp.info"
+    cat "${BASEDIR}"/*sample_sheet.csv | tail -n +2 > "${BASEDIR}/temp.info"
 
     # Process the Barcode column to add leading zeros and 'barcode' prefix
     # Convert Episode and EpisodeWES to uppercase
