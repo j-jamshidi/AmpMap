@@ -274,22 +274,22 @@ process_samples() {
             # Final Analysis and Cleanup
             log "Analyzing the reads and writing the results for ${Barcode}, ${Episode}..."
             if [[ ! "$Variant1" =~ chr ]] || [[ ! "$Variant2" =~ chr ]]; then
-                python "${SCRIPT_PATH}/localise_amplicon.py" \
-                    "${WORKDIR}/${Barcode}/${Episode}.bam" \
-                    "${WORKDIR}/${Barcode}/${Episode}_coordinate.bed"
+                docker run --rm -v "${WORKDIR}:/data" javadj/ontamp:latest localise_amplicon.py \
+                    "/data/${Barcode}/${Episode}.bam" \
+                    "/data/${Barcode}/${Episode}_coordinate.bed"
             else
                 # Run Quality Control first to create clean-span-hq.bam
                 cd "$current_dir" || exit
-                python "${SCRIPT_PATH}/phasing_variants_qc.py" \
-                    "${WORKDIR}/${Barcode}/${Episode}.bam" \
-                    "${WORKDIR}/${Barcode}/${Episode}.vcf"
+                docker run --rm -v "${WORKDIR}:/data" javadj/ontamp:latest phasing_variants_qc.py \
+                    "/data/${Barcode}/${Episode}.bam" \
+                    "/data/${Barcode}/${Episode}.vcf"
                 
                 # Run variant comparison
                 if [[ -f "${WORKDIR}/${Barcode}/${Episode}.vcf" ]] && [[ -f "${WORKDIR}/${Barcode}/${Episode}.wf_snp.vcf.gz" ]]; then
-                    python "${SCRIPT_PATH}/variant_comparison.py" \
-                        "${WORKDIR}/${Barcode}/${Episode}.vcf" \
-                        "${WORKDIR}/${Barcode}/${Episode}.wf_snp.vcf.gz" \
-                        "${WORKDIR}/${Barcode}/${Episode}_report.txt"
+                    docker run --rm -v "${WORKDIR}:/data" javadj/ontamp:latest variant_comparison.py \
+                        "/data/${Barcode}/${Episode}.vcf" \
+                        "/data/${Barcode}/${Episode}.wf_snp.vcf.gz" \
+                        "/data/${Barcode}/${Episode}_report.txt"
                 fi
                 
                 # Then run WhatsHap and HapCUT2 Phasing (only for two variants)
