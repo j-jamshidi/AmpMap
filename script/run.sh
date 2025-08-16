@@ -297,9 +297,9 @@ process_samples() {
                 run_hapcut2 "$Barcode" "$Episode"
                 
                 # Finally run the remaining analysis
-                python "${SCRIPT_PATH}/phase_amplicon.py" \
-                    "${WORKDIR}/${Barcode}/${Episode}.bam" \
-                    "${WORKDIR}/${Barcode}/${Episode}.vcf"
+                docker run --rm -v "${WORKDIR}:/data" javadj/ontamp:latest phase_amplicon.py \
+                    "/data/${Barcode}/${Episode}.bam" \
+                    "/data/${Barcode}/${Episode}.vcf"
             fi
 
 
