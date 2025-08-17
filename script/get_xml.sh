@@ -69,7 +69,7 @@ while IFS=, read -r Batch Barcode Episode Coordinate Variant1 Variant2 EpisodeWE
 	if [[ "$Variant2" =~ chr ]]; then
 		lrbam=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_phased.bam --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g');
 		lrbai=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_phased.bam.bai --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g');
-		phasevcf=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_Phased.vcf --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g');
+		phasevcf=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_Phased.vcf.gz --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g');
 		wfvcf=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}.wf_snp.vcf.gz --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g');
 	else
 		lrbam=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_QC.bam --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g');
