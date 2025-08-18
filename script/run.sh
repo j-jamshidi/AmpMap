@@ -350,39 +350,45 @@ generate_xml_single() {
         fi
         
         # Add timeout and error handling for bs commands
-        DATID=$(timeout 30 bs -c POWH list datasets --input-biosample $sid --not-type "illumina.fastq.v1.8" --sort-by AppSession.DateCreated --terse 2>/dev/null | tail -n1 || true)
+        log "Running: bs -c POWH list datasets --input-biosample $sid"
+        DATID=$(timeout 30 bs -c POWH list datasets --input-biosample $sid --not-type "illumina.fastq.v1.8" --sort-by AppSession.DateCreated --terse 2>&1 | tail -n1 || true)
+        log "Dataset ID: '$DATID'"
         
-        if [[ -z "$DATID" ]]; then
-            log_warn "No dataset found for ${sid}"
+        if [[ -z "$DATID" ]] || [[ "$DATID" == *"Error"* ]] || [[ "$DATID" == *"error"* ]]; then
+            log_warn "No valid dataset found for ${sid}: $DATID"
             return 1
         fi
         
-        BAM=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam --terse 2>/dev/null || true)
-        BAI=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam.bai --terse 2>/dev/null || true)
+        log "Getting BAM/BAI content for dataset: $DATID"
+        BAM=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam --terse 2>&1 || true)
+        BAI=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam.bai --terse 2>&1 || true)
+        log "BAM: '$BAM', BAI: '$BAI'"
         
-        if [[ -z "$BAM" ]] || [[ -z "$BAI" ]]; then
+        if [[ -z "$BAM" ]] || [[ -z "$BAI" ]] || [[ "$BAM" == *"Error"* ]] || [[ "$BAI" == *"Error"* ]]; then
             log_warn "Failed to get BAM/BAI files for dataset ${DATID}"
             return 1
         fi
         
-        AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAM" 2>/dev/null || true)
-        if [[ -z "$AWS_RSA256_link" ]]; then
-            log_warn "Failed to get BAM link"
+        log "Getting file links..."
+        AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAM" 2>&1 || true)
+        if [[ -z "$AWS_RSA256_link" ]] || [[ "$AWS_RSA256_link" == *"Error"* ]]; then
+            log_warn "Failed to get BAM link: $AWS_RSA256_link"
             return 1
         fi
         
-        wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>/dev/null || true)
+        wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>&1 || true)
         BAMPre=$(echo "$wget_out" | grep -i "Location" | tail -n 1 | awk '{print $2}' || true)
         
-        AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAI" 2>/dev/null || true)
-        if [[ -z "$AWS_RSA256_link" ]]; then
-            log_warn "Failed to get BAI link"
+        AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAI" 2>&1 || true)
+        if [[ -z "$AWS_RSA256_link" ]] || [[ "$AWS_RSA256_link" == *"Error"* ]]; then
+            log_warn "Failed to get BAI link: $AWS_RSA256_link"
             return 1
         fi
         
-        wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>/dev/null || true)
+        wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>&1 || true)
         BAIPre=$(echo "$wget_out" | grep -i "Location" | tail -n 1 | awk '{print $2}' || true)
         
+        log "Final URLs - BAM: '$BAMPre', BAI: '$BAIPre'"
         if [[ -z "$BAMPre" ]] || [[ -z "$BAIPre" ]]; then
             log_warn "Failed to get valid presigned URLs"
             return 1
