@@ -10,6 +10,14 @@ REFERENCE="/EFSGaiaDataDrive/ref/ONT/GCA_000001405.15_GRCh38_no_alt_analysis_set
 
 # Functions
 
+# Pull required Docker images
+pull_docker_images() {
+    log "Checking and pulling required Docker images..."
+    docker pull hkubal/clair3:latest
+    docker pull javadj/ontampip:latest
+    log "Docker images ready!"
+}
+
 # Logging function
 log() {
     echo -e "$(date '+%Y-%m-%d %H:%M:%S') - $1"
@@ -412,6 +420,9 @@ process_samples() {
 }
 
 # Main execution
+
+# Pull Docker images
+pull_docker_images
 
 # Prepare input file
 prepare_input_file
