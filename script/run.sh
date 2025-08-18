@@ -10,11 +10,20 @@ REFERENCE="/EFSGaiaDataDrive/ref/ONT/GCA_000001405.15_GRCh38_no_alt_analysis_set
 
 # Functions
 
-# Pull required Docker images
+# Check and pull required Docker images if not present
 pull_docker_images() {
-    log "Checking and pulling required Docker images..."
-    docker pull hkubal/clair3:latest
-    docker pull javadj/ontampip:latest
+    log "Checking required Docker images..."
+    
+    if ! docker image inspect hkubal/clair3:latest >/dev/null 2>&1; then
+        log "Pulling hkubal/clair3:latest..."
+        docker pull hkubal/clair3:latest
+    fi
+    
+    if ! docker image inspect javadj/ontampip:latest >/dev/null 2>&1; then
+        log "Pulling javadj/ontampip:latest..."
+        docker pull javadj/ontampip:latest
+    fi
+    
     log "Docker images ready!"
 }
 
