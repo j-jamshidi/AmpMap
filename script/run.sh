@@ -524,7 +524,7 @@ process_samples() {
         # prepare data for the xml file
             aws s3 cp ${WORKDIR}/${Barcode} s3://nswhp-gaia-poc-pl/ONT/${RUNID}/${Barcode}/ --recursive >/dev/null 2>&1
             
-                log "Upload finished!"
+                log "Upload finished!\n"
         
                
         }
