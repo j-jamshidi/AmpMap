@@ -327,6 +327,40 @@ run_hapcut2() {
     log "HapCUT2 analysis finished!"
 }
 
+# Add variant information to report header
+add_variant_info_to_report() {
+    local barcode=$1
+    local episode=$2
+    local variant1=$3
+    local variant2=$4
+    local report_file="${WORKDIR}/${barcode}/${episode}_report.txt"
+    
+    # Extract positions for distance calculation
+    local pos1=$(echo "$variant1" | sed 's/.*://' | sed 's/[^0-9].*//')
+    local pos2=$(echo "$variant2" | sed 's/.*://' | sed 's/[^0-9].*//')
+    local distance=$((pos2 - pos1))
+    
+    # Create temporary file with variant info
+    local temp_file="${WORKDIR}/${barcode}/temp_variant_info.txt"
+    
+    # Find the line with "Amplicon length:" and add variant info after it
+    if [[ -f "$report_file" ]]; then
+        awk -v var1="$variant1" -v var2="$variant2" -v dist="$distance" '
+        /^Amplicon length:/ {
+            print $0
+            print "\nVariants:"
+            print "First variant: " var1
+            print "Second variant: " var2
+            print "Distance between variants: " dist " bp"
+            next
+        }
+        { print }
+        ' "$report_file" > "$temp_file"
+        
+        mv "$temp_file" "$report_file"
+    fi
+}
+
 # Generate XML file for a single sample
 generate_xml_single() {
     local run=$1
@@ -537,6 +571,9 @@ process_samples() {
                 docker run --rm -v "${WORKDIR}:/data" javadj/ontampip:latest phase_amplicon.py \
                     "/data/${Barcode}/${Episode}.bam" \
                     "/data/${Barcode}/${Episode}.vcf"
+                
+                # Add variant information to report header
+                add_variant_info_to_report "$Barcode" "$Episode" "$Variant1" "$Variant2"
             fi
 
             # Cleanup temporary files
