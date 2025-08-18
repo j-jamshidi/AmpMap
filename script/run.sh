@@ -446,11 +446,9 @@ generate_xml_single() {
         fi
     fi
     
-    log "Setting episode ID in XML..."
     sed -i -e "s/C1_IID/$Episode/g" "${OUTXML}"
     raw2=$Variant2
     
-    log "Processing coordinates for variants..."
     if [[ "$Variant1" =~ chr ]] || [[ "$Variant2" =~ chr ]]; then
         if [[ ! "$Variant2" =~ chr ]]; then
             Variant2=$Variant1
@@ -461,7 +459,7 @@ generate_xml_single() {
         pos2=$(echo $Variant2 | cut -d ':' -f 2 | cut -d ' ' -f 1)
         
         if [ "$chr1" != "$chr2" ]; then
-            log_warn "Variants are on different chromosomes for ${Episode}. Skipping coordinate adjustment."
+            log "Warning: Variants are on different chromosomes for ${Episode}. Skipping coordinate adjustment."
         else
             if [ $pos1 -lt $pos2 ]; then
                 start=$((pos1 - 100))
@@ -471,60 +469,30 @@ generate_xml_single() {
                 end=$((pos1 + 100))
             fi
             Coordinate="${chr1}:${start}-${end}"
-            log "Adjusted coordinate to: ${Coordinate}"
         fi
     fi
     
-    log "Setting coordinate in XML: ${Coordinate}"
-    sed -i -e "s|CHRSTARTEND|$Coordinate|g" "${OUTXML}"
+    sed -i -e "s/CHRSTARTEND/$Coordinate/g" "${OUTXML}"
     Variant2=$raw2
     
-    log "Generating S3 presigned URLs..."
     if [[ "$Variant2" =~ chr ]]; then
-        log "Two variants detected, using phased files"
-        if ! lrbam=$(timeout 60 aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_phased.bam --expire=604800 2>/dev/null); then
-            log_warn "Failed to generate presigned URL for phased BAM"
-            lrbam=""
-        fi
-        if ! lrbai=$(timeout 60 aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_phased.bam.bai --expire=604800 2>/dev/null); then
-            log_warn "Failed to generate presigned URL for phased BAI"
-            lrbai=""
-        fi
-        if ! phasevcf=$(timeout 60 aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_Phased.vcf.gz --expire=604800 2>/dev/null); then
-            log_warn "Failed to generate presigned URL for phased VCF"
-            phasevcf=""
-        fi
-        if ! wfvcf=$(timeout 60 aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}.wf_snp.vcf.gz --expire=604800 2>/dev/null); then
-            log_warn "Failed to generate presigned URL for workflow VCF"
-            wfvcf=""
-        fi
+        lrbam=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_phased.bam --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
+        lrbai=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_phased.bam.bai --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
+        phasevcf=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_Phased.vcf.gz --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
+        wfvcf=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}.wf_snp.vcf.gz --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
     else
-        log "Single/no variant detected, using QC files"
-        if ! lrbam=$(timeout 60 aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_QC.bam --expire=604800 2>/dev/null); then
-            log_warn "Failed to generate presigned URL for QC BAM"
-            lrbam=""
-        fi
-        if ! lrbai=$(timeout 60 aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_QC.bam.bai --expire=604800 2>/dev/null); then
-            log_warn "Failed to generate presigned URL for QC BAI"
-            lrbai=""
-        fi
-        if ! phasevcf=$(timeout 60 aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}.vcf --expire=604800 2>/dev/null); then
-            log_warn "Failed to generate presigned URL for input VCF"
-            phasevcf=""
-        fi
-        if ! wfvcf=$(timeout 60 aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}.wf_snp.vcf.gz --expire=604800 2>/dev/null); then
-            log_warn "Failed to generate presigned URL for workflow VCF"
-            wfvcf=""
-        fi
+        lrbam=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_QC.bam --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
+        lrbai=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}_QC.bam.bai --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
+        phasevcf=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}.vcf --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
+        wfvcf=$(aws s3 presign s3://nswhp-gaia-poc-pl/ONT/$run/$Barcode/${Episode}.wf_snp.vcf.gz --expire=604800 | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
     fi
     
-    log "Updating XML with presigned URLs..."
-    sed -i -e "s|WF_SNP_VCF|$wfvcf|g" "${OUTXML}"
-    sed -i -e "s|PHASED_VCF|$phasevcf|g" "${OUTXML}"
-    sed -i -e "s|C1_LR_BAM_URL|$lrbam|g" "${OUTXML}"
-    sed -i -e "s|C1_LR_index_URL|$lrbai|g" "${OUTXML}"
+    sed -i -e "s/WF_SNP_VCF/$wfvcf/g" "${OUTXML}"
+    sed -i -e "s/PHASED_VCF/$phasevcf/g" "${OUTXML}"
+    sed -i -e "s/C1_LR_BAM_URL/$lrbam/g" "${OUTXML}"
+    sed -i -e "s/C1_LR_index_URL/$lrbai/g" "${OUTXML}"
     
-    log "XML file created successfully: ${OUTXML}"
+    log "XML file created: ${OUTXML}"
 }
 
 # Prepare input file
