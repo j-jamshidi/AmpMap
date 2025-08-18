@@ -58,7 +58,7 @@ if [[ ! -f "$REFERENCE" ]]; then
     exit 1
 fi
 
-if [[ ! -f "${BASEDIR}"/*sample_sheet.csv ]]; then
+if ! compgen -G "${BASEDIR}/*sample_sheet.csv" > /dev/null; then
     echo "Error: sample_sheet.csv not found in $BASEDIR" >&2
     exit 1
 fi
