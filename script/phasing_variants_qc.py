@@ -376,7 +376,8 @@ def main():
     report_file = os.path.join(output_dir, f"{episode}_report.txt")
     
     # Get BED file path and read amplicon coordinates
-    bed_file = bam_file.removesuffix('.bam') + '_coordinate.bed'
+    base_name = bam_file[:-4] if bam_file.endswith('.bam') else bam_file
+    bed_file = base_name + '_coordinate.bed'
     try:
         with open(bed_file, 'r') as bed:
             line = bed.readline().strip()

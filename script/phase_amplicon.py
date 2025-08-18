@@ -124,8 +124,9 @@ def main():
     episode = os.path.splitext(os.path.basename(bam_file))[0]
     
     # Create output names
-    output_bam = bam_file.removesuffix('.bam') + "_phased.bam"
-    output_txt = bam_file.removesuffix('.bam') + "_report.txt"
+    base_name = bam_file[:-4] if bam_file.endswith('.bam') else bam_file
+    output_bam = base_name + "_phased.bam"
+    output_txt = base_name + "_report.txt"
 
     with open(output_txt, 'a') as output_file:
         original_stdout = sys.stdout
@@ -139,14 +140,14 @@ def main():
 
 
             # Quality control is now handled by separate script
-            clean_span_bam = os.path.join(Path(bam_file).parent._str, f"clean-span-hq.bam")
+            clean_span_bam = os.path.join(os.path.dirname(bam_file), "clean-span-hq.bam")
             
             if os.path.exists(clean_span_bam):
                 # WhatsHap is now run from the shell script
                 analyze_reads(output_bam, vcf_file)
                 
                 # Analyze all phasing results
-                analyze_phasing_results(episode, Path(bam_file).parent._str)
+                analyze_phasing_results(episode, os.path.dirname(bam_file))
             else:
                 print("No high quality spanning reads found. Analysis cannot proceed.")
 

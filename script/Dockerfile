@@ -8,8 +8,11 @@ RUN apt-get update && apt-get install -y \
 # Install Python dependencies
 RUN pip install pysam numpy
 
-# Copy all Python scripts
+# Copy all Python scripts and template files
 COPY *.py /app/
+COPY dummy.vcf /app/
+COPY solo_LR.xml /app/
+COPY solo_LR_SR.xml /app/
 
 # Set working directory
 WORKDIR /app
