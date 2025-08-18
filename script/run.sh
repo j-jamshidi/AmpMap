@@ -337,18 +337,63 @@ generate_xml_single() {
     local Variant2=$6
     local EpisodeWES=$7
     
-    # get_presign function
+    log "Starting XML generation for ${Episode}..."
+    
+    # get_presign function with error handling
     get_presign() {
-        DATID=$(bs -c POWH list datasets --input-biosample $sid --not-type "illumina.fastq.v1.8" --sort-by AppSession.DateCreated --terse | tail -n1)
-        BAM=$(bs dataset -c POWH content --id=$DATID --extension=bam --terse)
-        BAI=$(bs dataset -c POWH content --id=$DATID --extension=bam.bai --terse)
+        log "Getting presigned URLs for ${sid}..."
         
-        AWS_RSA256_link=$(bs -c POWH file link -i "$BAM")
-        wget_out=$(wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>&1)
+        # Add timeout and error handling for bs commands
+        if ! DATID=$(timeout 30 bs -c POWH list datasets --input-biosample $sid --not-type "illumina.fastq.v1.8" --sort-by AppSession.DateCreated --terse 2>/dev/null | tail -n1); then
+            log_warn "Failed to get dataset ID for ${sid}, using fallback"
+            echo "" ""
+            return 1
+        fi
+        
+        if [[ -z "$DATID" ]]; then
+            log_warn "No dataset found for ${sid}"
+            echo "" ""
+            return 1
+        fi
+        
+        if ! BAM=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam --terse 2>/dev/null); then
+            log_warn "Failed to get BAM for dataset ${DATID}"
+            echo "" ""
+            return 1
+        fi
+        
+        if ! BAI=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam.bai --terse 2>/dev/null); then
+            log_warn "Failed to get BAI for dataset ${DATID}"
+            echo "" ""
+            return 1
+        fi
+        
+        if ! AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAM" 2>/dev/null); then
+            log_warn "Failed to get BAM link"
+            echo "" ""
+            return 1
+        fi
+        
+        if ! wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>&1); then
+            log_warn "Failed to get BAM presigned URL"
+            echo "" ""
+            return 1
+        fi
+        
         BAMPre=$(echo "$wget_out" | grep -i "Location" | tail -n 1 | awk '{print $2}')
         
-        AWS_RSA256_link=$(bs -c POWH file link -i "$BAI")
-        wget_out=$(wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>&1)
+        if ! AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAI" 2>/dev/null); then
+            log_warn "Failed to get BAI link"
+            echo "" ""
+            return 1
+        fi
+        
+        if ! wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>&1); then
+            log_warn "Failed to get BAI presigned URL"
+            echo "" ""
+            return 1
+        fi
+        
         BAIPre=$(echo "$wget_out" | grep -i "Location" | tail -n 1 | awk '{print $2}')
         
         echo $BAMPre $BAIPre
@@ -356,22 +401,48 @@ generate_xml_single() {
     
     OUTXML="${WORKDIR}/${Barcode}/${Episode}.xml"
     
-    if [ "$EpisodeWES" == "NA" ]; then
+    log "EpisodeWES value: '${EpisodeWES}'"
+    
+    if [ "$EpisodeWES" == "NA" ] || [ -z "$EpisodeWES" ]; then
+        log "Using solo LR template (no WES data)"
         docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontampip:latest /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
     else
-        cat /EBSDataDrive/software/sample_ran.txt /EBSDataDrive/software/sample_ran_CRE_BS.txt > /EBSDataDrive/software/sample_SR.txt
-        wesrun=$(cat /EBSDataDrive/software/sample_SR.txt | grep $EpisodeWES | cut -f 6 | tr '[:lower:]' '[:upper:]')
-        sid=$(cat /EBSDataDrive/software/sample_SR.txt | grep $EpisodeWES | cut -f 1 | tr '[:lower:]' '[:upper:]')
+        log "Processing WES data for ${EpisodeWES}..."
         
-        if [ -z "$wesrun" ]; then
+        # Check if required files exist
+        if [[ ! -f "/EBSDataDrive/software/sample_ran.txt" ]] || [[ ! -f "/EBSDataDrive/software/sample_ran_CRE_BS.txt" ]]; then
+            log_warn "Required sample files not found, using solo LR template"
             docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontampip:latest /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
         else
-            docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontampip:latest /app/solo_LR_SR.xml "/data/${Barcode}/${Episode}.xml"
-            read -r BAMpresign BAIpresign <<< $(get_presign)
-            bamurl=$(echo $BAMpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
-            baiurl=$(echo $BAIpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
-            sed -i -e "s/C1_SR_index_URL/$baiurl/g" "${OUTXML}"
-            sed -i -e "s/C1_SR_BAM_URL/$bamurl/g" "${OUTXML}"
+            cat /EBSDataDrive/software/sample_ran.txt /EBSDataDrive/software/sample_ran_CRE_BS.txt > /EBSDataDrive/software/sample_SR.txt
+            wesrun=$(cat /EBSDataDrive/software/sample_SR.txt | grep $EpisodeWES | cut -f 6 | tr '[:lower:]' '[:upper:]' 2>/dev/null || true)
+            sid=$(cat /EBSDataDrive/software/sample_SR.txt | grep $EpisodeWES | cut -f 1 | tr '[:lower:]' '[:upper:]' 2>/dev/null || true)
+            
+            log "Found wesrun: '${wesrun}', sid: '${sid}'"
+            
+            if [ -z "$wesrun" ] || [ -z "$sid" ]; then
+                log_warn "No WES run found for ${EpisodeWES}, using solo LR template"
+                docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontampip:latest /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
+            else
+                log "Using combined LR+SR template"
+                docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontampip:latest /app/solo_LR_SR.xml "/data/${Barcode}/${Episode}.xml"
+                
+                # Get presigned URLs with timeout
+                log "Getting presigned URLs..."
+                if read -r BAMpresign BAIpresign <<< $(get_presign); then
+                    if [[ -n "$BAMpresign" ]] && [[ -n "$BAIpresign" ]]; then
+                        bamurl=$(echo $BAMpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
+                        baiurl=$(echo $BAIpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
+                        sed -i -e "s/C1_SR_index_URL/$baiurl/g" "${OUTXML}"
+                        sed -i -e "s/C1_SR_BAM_URL/$bamurl/g" "${OUTXML}"
+                        log "Presigned URLs added to XML"
+                    else
+                        log_warn "Failed to get valid presigned URLs, XML may be incomplete"
+                    fi
+                else
+                    log_warn "get_presign failed, XML may be incomplete"
+                fi
+            fi
         fi
     fi
     
@@ -529,11 +600,19 @@ process_samples() {
 
             # Generate XML file for this sample
             log "Generating XML for ${Barcode}/${Episode}..."
-            generate_xml_single "$RUNID" "$Barcode" "$Episode" "$Coordinate" "$Variant1" "$Variant2" "$EpisodeWES"
+            if ! generate_xml_single "$RUNID" "$Barcode" "$Episode" "$Coordinate" "$Variant1" "$Variant2" "$EpisodeWES"; then
+                log_warn "XML generation failed for ${Episode}, continuing with next sample"
+            fi
             
             # Upload data to S3
-            aws s3 cp ${WORKDIR}/${Barcode} s3://nswhp-gaia-poc-pl/ONT/${RUNID}/${Barcode}/ --recursive >/dev/null 2>&1
-            log "Upload finished!\n"
+            log "Uploading data to S3..."
+            if ! timeout 300 aws s3 cp ${WORKDIR}/${Barcode} s3://nswhp-gaia-poc-pl/ONT/${RUNID}/${Barcode}/ --recursive >/dev/null 2>&1; then
+                log_warn "S3 upload failed or timed out for ${Barcode}"
+            else
+                log "Upload finished!"
+            fi
+            
+            log "Processing completed for ${Barcode}/${Episode}\n"
             
             # Reset logging
             exec > /dev/tty 2>&1
