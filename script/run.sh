@@ -343,60 +343,52 @@ generate_xml_single() {
     get_presign() {
         log "Getting presigned URLs for ${sid}..."
         
-        # Add timeout and error handling for bs commands
-        if ! DATID=$(timeout 30 bs -c POWH list datasets --input-biosample $sid --not-type "illumina.fastq.v1.8" --sort-by AppSession.DateCreated --terse 2>/dev/null | tail -n1); then
-            log_warn "Failed to get dataset ID for ${sid}, using fallback"
-            echo "" ""
+        # Check if bs command is available
+        if ! command -v bs &> /dev/null; then
+            log_warn "BaseSpace CLI not available"
             return 1
         fi
+        
+        # Add timeout and error handling for bs commands
+        DATID=$(timeout 30 bs -c POWH list datasets --input-biosample $sid --not-type "illumina.fastq.v1.8" --sort-by AppSession.DateCreated --terse 2>/dev/null | tail -n1 || true)
         
         if [[ -z "$DATID" ]]; then
             log_warn "No dataset found for ${sid}"
-            echo "" ""
             return 1
         fi
         
-        if ! BAM=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam --terse 2>/dev/null); then
-            log_warn "Failed to get BAM for dataset ${DATID}"
-            echo "" ""
+        BAM=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam --terse 2>/dev/null || true)
+        BAI=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam.bai --terse 2>/dev/null || true)
+        
+        if [[ -z "$BAM" ]] || [[ -z "$BAI" ]]; then
+            log_warn "Failed to get BAM/BAI files for dataset ${DATID}"
             return 1
         fi
         
-        if ! BAI=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam.bai --terse 2>/dev/null); then
-            log_warn "Failed to get BAI for dataset ${DATID}"
-            echo "" ""
-            return 1
-        fi
-        
-        if ! AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAM" 2>/dev/null); then
+        AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAM" 2>/dev/null || true)
+        if [[ -z "$AWS_RSA256_link" ]]; then
             log_warn "Failed to get BAM link"
-            echo "" ""
             return 1
         fi
         
-        if ! wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>&1); then
-            log_warn "Failed to get BAM presigned URL"
-            echo "" ""
-            return 1
-        fi
+        wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>/dev/null || true)
+        BAMPre=$(echo "$wget_out" | grep -i "Location" | tail -n 1 | awk '{print $2}' || true)
         
-        BAMPre=$(echo "$wget_out" | grep -i "Location" | tail -n 1 | awk '{print $2}')
-        
-        if ! AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAI" 2>/dev/null); then
+        AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAI" 2>/dev/null || true)
+        if [[ -z "$AWS_RSA256_link" ]]; then
             log_warn "Failed to get BAI link"
-            echo "" ""
             return 1
         fi
         
-        if ! wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>&1); then
-            log_warn "Failed to get BAI presigned URL"
-            echo "" ""
+        wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>/dev/null || true)
+        BAIPre=$(echo "$wget_out" | grep -i "Location" | tail -n 1 | awk '{print $2}' || true)
+        
+        if [[ -z "$BAMPre" ]] || [[ -z "$BAIPre" ]]; then
+            log_warn "Failed to get valid presigned URLs"
             return 1
         fi
         
-        BAIPre=$(echo "$wget_out" | grep -i "Location" | tail -n 1 | awk '{print $2}')
-        
-        echo $BAMPre $BAIPre
+        echo "$BAMPre" "$BAIPre"
     }
     
     OUTXML="${WORKDIR}/${Barcode}/${Episode}.xml"
@@ -429,18 +421,22 @@ generate_xml_single() {
                 
                 # Get presigned URLs with timeout
                 log "Getting presigned URLs..."
-                if read -r BAMpresign BAIpresign <<< $(get_presign); then
+                if presign_result=$(get_presign 2>/dev/null) && [[ -n "$presign_result" ]]; then
+                    read -r BAMpresign BAIpresign <<< "$presign_result"
                     if [[ -n "$BAMpresign" ]] && [[ -n "$BAIpresign" ]]; then
-                        bamurl=$(echo $BAMpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
-                        baiurl=$(echo $BAIpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
-                        sed -i -e "s/C1_SR_index_URL/$baiurl/g" "${OUTXML}"
-                        sed -i -e "s/C1_SR_BAM_URL/$bamurl/g" "${OUTXML}"
+                        # Escape URLs for XML
+                        bamurl=$(echo "$BAMpresign" | sed 's/&/\&amp;/g')
+                        baiurl=$(echo "$BAIpresign" | sed 's/&/\&amp;/g')
+                        sed -i -e "s|C1_SR_BAM_URL|$bamurl|g" "${OUTXML}"
+                        sed -i -e "s|C1_SR_index_URL|$baiurl|g" "${OUTXML}"
                         log "Presigned URLs added to XML"
                     else
-                        log_warn "Failed to get valid presigned URLs, XML may be incomplete"
+                        log_warn "Invalid presigned URLs received, falling back to LR-only template"
+                        docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontampip:latest /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
                     fi
                 else
-                    log_warn "get_presign failed, XML may be incomplete"
+                    log_warn "get_presign failed, falling back to LR-only template"
+                    docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontampip:latest /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
                 fi
             fi
         fi
