@@ -347,6 +347,9 @@ process_samples() {
         {
             log "Processing ${Barcode}..."
             mkdir -p "${WORKDIR}/${Barcode}"
+            
+            # Set up logging for this sample
+            exec > >(tee -a "${WORKDIR}/${Barcode}/pipeline.log") 2>&1
 
             # Clean up Coordinate by removing trailing spaces
             Coordinate=$(echo "${Coordinate}" | sed 's/[[:space:]]*$//')
@@ -424,6 +427,9 @@ process_samples() {
             # Upload data to S3
             aws s3 cp ${WORKDIR}/${Barcode} s3://nswhp-gaia-poc-pl/ONT/${RUNID}/${Barcode}/ --recursive >/dev/null 2>&1
             log "Upload finished!\n"
+            
+            # Reset logging
+            exec > /dev/tty 2>&1
         }
     done < "${BASEDIR}/${RUNID}.info"
 }
