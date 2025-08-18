@@ -233,7 +233,13 @@ generate_xml() {
     }
     
     while IFS=, read -r Batch Barcode Episode Coordinate Variant1 Variant2 EpisodeWES remainder; do
+        # Clean up variables
+        Barcode=$(echo "$Barcode" | tr -d ' ')
+        Episode=$(echo "$Episode" | tr -d ' ')
+        EpisodeWES=$(echo "$EpisodeWES" | tr -d ' ')
+        
         OUTXML="${WORKDIR}/${Barcode}/${Episode}.xml"
+        log "Generating XML for ${Barcode}/${Episode}..."
         
         if [ "$EpisodeWES" == "NA" ]; then
             docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontamp:latest /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"

@@ -36,8 +36,8 @@ def perform_qc_analysis(bam_file, bed_file):
     Perform ONT-specific quality control analysis on BAM file for single amplicon region
     """
     bam_path = Path(bam_file)
-    report_file = f"{bam_path.stem}_report.txt"
-    output_bam = f"{bam_path.stem}_QC.bam"
+    report_file = str(bam_path.parent / f"{bam_path.stem}_report.txt")
+    output_bam = str(bam_path.parent / f"{bam_path.stem}_QC.bam")
     
     try:
         # Read the single region from BED file
