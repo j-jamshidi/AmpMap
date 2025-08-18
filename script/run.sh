@@ -339,23 +339,21 @@ generate_xml_single() {
     
     log "Starting XML generation for ${Episode}..."
     
-    # get_presign function - original working version with clean output
+    # get_presign function - exact copy from working get_xml.sh
     get_presign() {
-        local temp_datid temp_bam temp_bai temp_link temp_wget temp_bam_pre temp_bai_pre
+        DATID=$(bs -c POWH list datasets --input-biosample $sid --not-type "illumina.fastq.v1.8" --sort-by AppSession.DateCreated --terse | tail -n1)
+        BAM=$(bs dataset -c POWH content --id=$DATID --extension=bam --terse)
+        BAI=$(bs dataset -c POWH content --id=$DATID --extension=bam.bai --terse)
         
-        temp_datid=$(bs -c POWH list datasets --input-biosample $sid --not-type "illumina.fastq.v1.8" --sort-by AppSession.DateCreated --terse 2>/dev/null | tail -n1)
-        temp_bam=$(bs dataset -c POWH content --id=$temp_datid --extension=bam --terse 2>/dev/null)
-        temp_bai=$(bs dataset -c POWH content --id=$temp_datid --extension=bam.bai --terse 2>/dev/null)
+        AWS_RSA256_link=$(bs -c POWH file link -i "$BAM")
+        wget_out=$(wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>&1)
+        BAMPre=$(echo "$wget_out" | grep -i "Location" | tail -n 1 | awk '{print $2}')
         
-        temp_link=$(bs -c POWH file link -i "$temp_bam" 2>/dev/null)
-        temp_wget=$(wget --save-headers --max-redirect=0 -O - "$temp_link" 2>/dev/null)
-        temp_bam_pre=$(echo "$temp_wget" | grep -i "Location" | tail -n 1 | awk '{print $2}')
+        AWS_RSA256_link=$(bs -c POWH file link -i "$BAI")
+        wget_out=$(wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>&1)
+        BAIPre=$(echo "$wget_out" | grep -i "Location" | tail -n 1 | awk '{print $2}')
         
-        temp_link=$(bs -c POWH file link -i "$temp_bai" 2>/dev/null)
-        temp_wget=$(wget --save-headers --max-redirect=0 -O - "$temp_link" 2>/dev/null)
-        temp_bai_pre=$(echo "$temp_wget" | grep -i "Location" | tail -n 1 | awk '{print $2}')
-        
-        echo "$temp_bam_pre" "$temp_bai_pre"
+        echo $BAMPre $BAIPre
     }
     
     OUTXML="${WORKDIR}/${Barcode}/${Episode}.xml"
@@ -386,22 +384,14 @@ generate_xml_single() {
                 log "Using combined LR+SR template"
                 docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontampip:latest /app/solo_LR_SR.xml "/data/${Barcode}/${Episode}.xml"
                 
-                # Get presigned URLs - capture in variables to prevent contamination
+                # Get presigned URLs - exact copy from working get_xml.sh
                 log "Getting presigned URLs..."
-                {
-                    read -r BAMpresign BAIpresign
-                } < <(get_presign 2>/dev/null || echo "" "")
-                
-                if [[ -n "$BAMpresign" ]] && [[ -n "$BAIpresign" ]]; then
-                    bamurl=$(echo $BAMpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
-                    baiurl=$(echo $BAIpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
-                    sed -i -e "s/C1_SR_index_URL/$baiurl/g" "${OUTXML}"
-                    sed -i -e "s/C1_SR_BAM_URL/$bamurl/g" "${OUTXML}"
-                    log "Presigned URLs added to XML"
-                else
-                    log_warn "Failed to get presigned URLs, using LR-only template"
-                    docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontampip:latest /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
-                fi
+                read -r BAMpresign BAIpresign <<< $(get_presign)
+                bamurl=$(echo $BAMpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
+                baiurl=$(echo $BAIpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
+                sed -i -e "s/C1_SR_index_URL/$baiurl/g" "${OUTXML}"
+                sed -i -e "s/C1_SR_BAM_URL/$bamurl/g" "${OUTXML}"
+                log "Presigned URLs added to XML"
             fi
         fi
     fi
