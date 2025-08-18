@@ -34,7 +34,7 @@ prepare_vcf() {
     local variant1=$3
     local variant2=$4
 
-    docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontamp:latest /app/dummy.vcf "/data/${barcode}/${episode}.vcf"
+    docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontampip:latest /app/dummy.vcf "/data/${barcode}/${episode}.vcf"
     sed -i -e "s/sample/${episode}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
 
     # Process first variant
@@ -74,12 +74,17 @@ merge_bam_files() {
     local coordinate=$3
 
     log "Merging BAM files for ${barcode}, sample ${episode}..."
-         samtools merge -@ 6 -u - "${BASEDIR}/bam_pass/${barcode}"/*bam 2>/dev/null | \
-         samtools sort -@ 6 -o "${WORKDIR}/${barcode}/temp.bam" 2>/dev/null && \
-         samtools index "${WORKDIR}/${barcode}/temp.bam" 2>/dev/null && \
-         samtools view -@ 6 -b "${WORKDIR}/${barcode}/temp.bam" "${coordinate}" > "${WORKDIR}/${barcode}/${episode}.bam" 2>/dev/null && \
-         samtools index "${WORKDIR}/${barcode}/${episode}.bam" 2>/dev/null && \
-     rm "${WORKDIR}/${barcode}/temp"*
+    docker run --rm -v "${BASEDIR}:/input" -v "${WORKDIR}:/output" --entrypoint samtools javadj/ontampip:latest \
+        merge -@ 6 -u - /input/bam_pass/${barcode}/*bam | \
+    docker run --rm -i -v "${WORKDIR}:/output" --entrypoint samtools javadj/ontampip:latest \
+        sort -@ 6 -o /output/${barcode}/temp.bam && \
+    docker run --rm -v "${WORKDIR}:/output" --entrypoint samtools javadj/ontampip:latest \
+        index /output/${barcode}/temp.bam && \
+    docker run --rm -v "${WORKDIR}:/output" --entrypoint samtools javadj/ontampip:latest \
+        view -@ 6 -b /output/${barcode}/temp.bam "${coordinate}" -o /output/${barcode}/${episode}.bam && \
+    docker run --rm -v "${WORKDIR}:/output" --entrypoint samtools javadj/ontampip:latest \
+        index /output/${barcode}/${episode}.bam && \
+    rm "${WORKDIR}/${barcode}/temp"*
 log "BAM files merged!"
 }
 
@@ -135,13 +140,14 @@ run_whatshap() {
     fi
 
     # Index the input BAM file
-    samtools index "${clean_span_bam}" 2>"${whatshap_log}"
+    docker run --rm -v "${WORKDIR}:/data" --entrypoint samtools javadj/ontampip:latest \
+        index "/data/${barcode}/clean-span-hq.bam" 2>"${whatshap_log}"
 
     # Run WhatsHap phase using Docker
     if docker run --rm \
         -v "${WORKDIR}:/data" \
         -v "$(dirname "${REFERENCE}"):/refs" \
-        javadj/whatshap:latest \
+        --entrypoint whatshap javadj/ontampip:latest \
         phase -o "/data/${barcode}/${episode}_Phased.vcf" \
         --reference "/refs/$(basename "${REFERENCE}")" \
         --internal-downsampling 23 \
@@ -151,14 +157,16 @@ run_whatshap() {
         
         # Compress and index the phased VCF only if phase succeeded
         if [[ -f "${phased_vcf}" ]]; then
-            bgzip -f "${phased_vcf}"
-            tabix -p vcf "${phased_vcf_gz}"
+            docker run --rm -v "${WORKDIR}:/data" --entrypoint bgzip javadj/ontampip:latest \
+                -f "/data/${barcode}/${episode}_Phased.vcf"
+            docker run --rm -v "${WORKDIR}:/data" --entrypoint tabix javadj/ontampip:latest \
+                -p vcf "/data/${barcode}/${episode}_Phased.vcf.gz"
 
             # Run WhatsHap haplotag using Docker
             if docker run --rm \
                 -v "${WORKDIR}:/data" \
                 -v "$(dirname "${REFERENCE}"):/refs" \
-                javadj/whatshap:latest \
+                --entrypoint whatshap javadj/ontampip:latest \
                 haplotag --tag-supplementary \
                 -o "/data/${barcode}/${episode}_phased.bam" \
                 --reference "/refs/$(basename "${REFERENCE}")" \
@@ -167,7 +175,8 @@ run_whatshap() {
                 --ignore-read-groups >>"${whatshap_log}" 2>&1; then
                 
                 # Index the output BAM only if haplotag succeeded
-                samtools index "${output_bam}"
+                docker run --rm -v "${WORKDIR}:/data" --entrypoint samtools javadj/ontampip:latest \
+                    index "/data/${barcode}/${episode}_phased.bam"
                 log "WhatsHap analysis finished successfully!"
             else
                 log "WhatsHap haplotag failed. Check ${whatshap_log} for details."
@@ -192,9 +201,7 @@ run_hapcut2() {
     docker run --rm \
         -v "${WORKDIR}:/data" \
         -v "$(dirname "${REFERENCE}"):/refs" \
-        --entrypoint conda \
-        javadj/hapcut2:latest \
-        run -n hapcut2-env extractHAIRS \
+        --entrypoint extractHAIRS javadj/ontampip:latest \
         --ont 1 \
         --bam "/data/${barcode}/${episode}.bam" \
         --VCF "/data/${barcode}/${episode}.vcf" \
@@ -204,7 +211,7 @@ run_hapcut2() {
 
     docker run --rm \
         -v "${WORKDIR}:/data" \
-        javadj/hapcut2:latest \
+        --entrypoint HAPCUT2 javadj/ontampip:latest \
         --fragments "/data/${barcode}/fragment_${episode}" \
         --VCF "/data/${barcode}/${episode}.vcf" \
         --output "/data/${barcode}/hap2cut_${episode}" >> "${WORKDIR}/${barcode}/HapCUT2.log" 2>&1
@@ -348,16 +355,16 @@ generate_xml() {
         log "Generating XML for ${Barcode}/${Episode}..."
         
         if [ "$EpisodeWES" == "NA" ]; then
-            docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontamp:latest /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
+            docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontampip:latest /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
         else
             cat /EBSDataDrive/software/sample_ran.txt /EBSDataDrive/software/sample_ran_CRE_BS.txt > /EBSDataDrive/software/sample_SR.txt
             wesrun=$(cat /EBSDataDrive/software/sample_SR.txt | grep $EpisodeWES | cut -f 6 | tr '[:lower:]' '[:upper:]')
             sid=$(cat /EBSDataDrive/software/sample_SR.txt | grep $EpisodeWES | cut -f 1 | tr '[:lower:]' '[:upper:]')
             
             if [ -z "$wesrun" ]; then
-                docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontamp:latest /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
+                docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontampip:latest /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
             else
-                docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontamp:latest /app/solo_LR_SR.xml "/data/${Barcode}/${Episode}.xml"
+                docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontampip:latest /app/solo_LR_SR.xml "/data/${Barcode}/${Episode}.xml"
                 read -r BAMpresign BAIpresign <<< $(get_presign)
                 bamurl=$(echo $BAMpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
                 baiurl=$(echo $BAIpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
@@ -478,19 +485,19 @@ process_samples() {
             # Final Analysis and Cleanup
             log "Analyzing the reads and writing the results for ${Barcode}, ${Episode}..."
             if [[ ! "$Variant1" =~ chr ]] || [[ ! "$Variant2" =~ chr ]]; then
-                docker run --rm -v "${WORKDIR}:/data" javadj/ontamp:latest localise_amplicon.py \
+                docker run --rm -v "${WORKDIR}:/data" javadj/ontampip:latest localise_amplicon.py \
                     "/data/${Barcode}/${Episode}.bam" \
                     "/data/${Barcode}/${Episode}_coordinate.bed"
             else
                 # Run Quality Control first to create clean-span-hq.bam
                 cd "$current_dir" || exit
-                docker run --rm -v "${WORKDIR}:/data" javadj/ontamp:latest phasing_variants_qc.py \
+                docker run --rm -v "${WORKDIR}:/data" javadj/ontampip:latest phasing_variants_qc.py \
                     "/data/${Barcode}/${Episode}.bam" \
                     "/data/${Barcode}/${Episode}.vcf"
                 
                 # Run variant comparison
                 if [[ -f "${WORKDIR}/${Barcode}/${Episode}.vcf" ]] && [[ -f "${WORKDIR}/${Barcode}/${Episode}.wf_snp.vcf.gz" ]]; then
-                    docker run --rm -v "${WORKDIR}:/data" javadj/ontamp:latest variant_comparison.py \
+                    docker run --rm -v "${WORKDIR}:/data" javadj/ontampip:latest variant_comparison.py \
                         "/data/${Barcode}/${Episode}.vcf" \
                         "/data/${Barcode}/${Episode}.wf_snp.vcf.gz" \
                         "/data/${Barcode}/${Episode}_report.txt"
@@ -501,7 +508,7 @@ process_samples() {
                 run_hapcut2 "$Barcode" "$Episode"
                 
                 # Finally run the remaining analysis
-                docker run --rm -v "${WORKDIR}:/data" javadj/ontamp:latest phase_amplicon.py \
+                docker run --rm -v "${WORKDIR}:/data" javadj/ontampip:latest phase_amplicon.py \
                     "/data/${Barcode}/${Episode}.bam" \
                     "/data/${Barcode}/${Episode}.vcf"
             fi

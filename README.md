@@ -131,63 +131,95 @@ For each processed sample, the following output files are generated within `WORK
 
 ## Dependencies
 
-This pipeline relies on several bioinformatics tools and Python libraries.
+This pipeline is **fully containerized** using Docker, requiring minimal local dependencies.
 
-**External Tools:**
+**Required:**
 
-* **`samtools`** (version 1.10 or higher recommended): For BAM file manipulation (merging, sorting, indexing, viewing).
-* **`Clair3`**: A deep neural network-based variant caller for ONT data.
-* **`WhatsHap`**: A tool for phasing genetic variants using long reads.
-* **`HapCUT2`**: A program for constructing haplotypes from sequence data.
-* **`bgzip`** and **`tabix`**: For compressing and indexing VCF files.
-* **`conda`**: For managing Python environments and dependencies.
-* **`aws cli`**: For uploading results to S3 (optional).
+* **Docker**: For running containerized tools and scripts.
+* **Docker Buildx**: For multi-platform container builds (if building from source).
 
-**Python Libraries:**
+**Docker Images Used:**
 
-* `pysam`: For interacting with BAM and VCF files in Python.
-* `pandas`: For data manipulation (used in `basecalling_QC_amplicon.py` for `sample_sheet.csv` processing, though the `run.sh` script currently handles this directly).
-* `numpy`: For numerical operations, especially in quality calculations (mean, median, N50).
-* `whatshap` (Python library): Underlying library used by WhatsHap tool.
+* **`hkubal/clair3:latest`**: Official Clair3 container for variant calling.
+* **`javadj/ontampip:latest`**: Comprehensive pipeline container containing:
+  * All Python scripts (localise_amplicon.py, phasing_variants_qc.py, variant_comparison.py, phase_amplicon.py)
+  * samtools (BAM file manipulation)
+  * WhatsHap (variant phasing)
+  * HapCUT2 (alternative phasing)
+  * bgzip/tabix (VCF compression)
+  * AWS CLI (S3 operations)
+  * Template files (dummy.vcf, XML templates)
+  * Python libraries (pysam, numpy, whatshap)
+
+**No Local Installation Required:**
+
+All bioinformatics tools, Python libraries, and scripts are pre-installed in the Docker containers.
 
 ## Usage
 
-1.  **Clone the Repository:**
+1.  **Prerequisites:**
+    * Install Docker on your system
+    * Ensure Docker daemon is running
+    * No other dependencies required - everything runs in containers!
+
+2.  **Clone the Repository:**
     ```bash
     git clone [https://github.com/your_username/your_repo_name.git](https://github.com/your_username/your_repo_name.git)
     cd your_repo_name
     ```
-2.  **Install Dependencies:** Ensure all external tools (`samtools`, `Clair3`, `WhatsHap`, `HapCUT2`, `bgzip`, `tabix`, `aws cli`) are installed and accessible in your system's PATH, or configure their paths in `run.sh`. Create and activate the `ONT` conda environment with the necessary Python libraries:
-    ```bash
-    conda create -n ONT python=3.9 pysam pandas numpy whatshap
-    conda activate ONT
-    ```
+
 3.  **Prepare Input Data:**
     * Place your `sample_sheet.csv` in the `BASEDIR` (`/EBSDataDrive/ONT/Runs/${RUNID}`).
     * Organize your raw barcoded BAM files in `BASEDIR/bam_pass/barcodeXX/` (The ONT default sequencing output structure).
-    * Ensure your `REFERENCE_FASTA` is correctly specified.
-    * Place `dummy.vcf` in `SCRIPT_PATH`.
-4.  **Configure `run.sh`:** Edit `run.sh` to set `RUNID`, `BASEDIR`, `WORKDIR`, `REFERENCE`, `CLAIR3_PATH`, `HAPCUT2_PATH`, and `SCRIPT_PATH` according to your environment.
+    * Ensure your `REFERENCE_FASTA` is correctly specified in `run.sh`.
+
+4.  **Configure `run.sh`:** Edit `run.sh` to set `RUNID`, `BASEDIR`, `WORKDIR`, and `REFERENCE` paths according to your environment.
+
 5.  **Run the Pipeline:**
     ```bash
     bash run.sh <RUN_ID>
     ```
     Replace `<RUN_ID>` with the identifier for your run (e.g., `run.sh my_ont_run`).
 
+**Note:** The pipeline will automatically pull the required Docker images (`hkubal/clair3:latest` and `javadj/ontampip:latest`) on first run.
+
 ## Scripts Overview
 
-* **`run.sh`**: The main shell script that orchestrates the entire pipeline. It handles file preparation, tool execution, and cleanup.
-* **`basecalling_QC_amplicon.py`**: A Python script responsible for performing detailed quality control on amplicon BAM files when one or no variants are specified. It generates a comprehensive QC report and compares called variants to user-provided ones.
-* **`basecalling_phasing_amplicon.py`**: A Python script central to the phasing analysis when two variants are specified. It performs variant validation, additional QC filtering, runs WhatsHap for phasing, analyzes read-level phasing, and generates a report on phasing outcomes. It also handles the parsing of HapCUT2 output if available.
-* **`README.md`**: This file, providing an overview of the pipeline.
-* **`sample_sheet.csv`**: Example input file defining samples and their variants.
-* **`dummy.vcf`**: A template VCF file used by `prepare_vcf` in `run.sh`.
-* **`get_xml.sh`**: A script to fetch XML files from S3 (optional). This script looks for and matches `EpisodeWES` to the WES databse and retrieves the corresponding XML file.
-* **`solo_LR_SR.xml`**: A template for the xml file to visualse short and long reads.  
+### Host Scripts:
+* **`run.sh`**: The main shell script that orchestrates the entire containerized pipeline. It handles Docker container execution, file preparation, and cleanup.
+
+### Containerized Scripts (in `javadj/ontampip:latest`):
+* **`localise_amplicon.py`**: Performs detailed quality control on amplicon BAM files when one or no variants are specified. Generates comprehensive QC reports and compares called variants to user-provided ones.
+* **`phasing_variants_qc.py`**: Handles variant validation and quality control filtering for phasing analysis when two variants are specified.
+* **`variant_comparison.py`**: Compares user-provided variants with Clair3 variant calling results.
+* **`phase_amplicon.py`**: Analyzes read-level phasing and generates reports on phasing outcomes. Parses both WhatsHap and HapCUT2 output.
+
+### Template Files (in `javadj/ontampip:latest`):
+* **`dummy.vcf`**: Template VCF file used for variant preparation.
+* **`solo_LR.xml`**: XML template for long-read only visualization.
+* **`solo_LR_SR.xml`**: XML template for combined short and long-read visualization.
+
+### Input Files:
+* **`sample_sheet.csv`**: Input file defining samples, barcodes, coordinates, and variants.
+* **`README.md`**: This documentation file.  
 
 ## License
 
 This project is licensed under the MIT License.
+
+## Container Architecture
+
+The pipeline uses a **hybrid containerization approach** for optimal performance and maintainability:
+
+- **Clair3**: Uses the official `hkubal/clair3:latest` container (maintained by developers)
+- **Everything Else**: Uses `javadj/ontampip:latest` containing all other tools and scripts
+
+This approach provides:
+- ✅ **Complete reproducibility** across different environments
+- ✅ **No local dependency management** required
+- ✅ **Consistent tool versions** across all runs
+- ✅ **Easy deployment** - just install Docker
+- ✅ **Optimal performance** - minimal container overhead
 
 ## Contact
 
