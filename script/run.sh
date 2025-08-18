@@ -421,13 +421,6 @@ process_samples() {
                
         }
     done < "${BASEDIR}/${RUNID}.info"
-
-    #generate xml files
-    log "Starting XML generation for ${RUNID}..."
-    generate_xml ${RUNID}
-    log "XML generation completed!"
-
-     log "Done!\n"  
 }
 
 #===============================================================================
@@ -439,5 +432,10 @@ prepare_input_file
 
 # Process samples
 process_samples
+
+# Generate XML files
+log "Starting XML generation for ${RUNID}..."
+generate_xml ${RUNID}
+log "XML generation completed!"
 
 log "Pipeline execution completed!"
