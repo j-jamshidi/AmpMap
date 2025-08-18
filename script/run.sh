@@ -341,56 +341,42 @@ generate_xml_single() {
     
     # get_presign function with error handling
     get_presign() {
-        log "Getting presigned URLs for ${sid}..."
-        
         # Check if bs command is available
         if ! command -v bs &> /dev/null; then
-            log_warn "BaseSpace CLI not available"
             return 1
         fi
         
-        # Add timeout and error handling for bs commands
-        log "Running: bs -c POWH list datasets --input-biosample $sid"
-        DATID=$(timeout 30 bs -c POWH list datasets --input-biosample $sid --not-type "illumina.fastq.v1.8" --sort-by AppSession.DateCreated --terse 2>&1 | tail -n1 || true)
-        log "Dataset ID: '$DATID'"
+        # Add timeout and error handling for bs commands - suppress all output
+        DATID=$(timeout 30 bs -c POWH list datasets --input-biosample $sid --not-type "illumina.fastq.v1.8" --sort-by AppSession.DateCreated --terse 2>/dev/null | tail -n1 || true)
         
         if [[ -z "$DATID" ]] || [[ "$DATID" == *"Error"* ]] || [[ "$DATID" == *"error"* ]]; then
-            log_warn "No valid dataset found for ${sid}: $DATID"
             return 1
         fi
         
-        log "Getting BAM/BAI content for dataset: $DATID"
-        BAM=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam --terse 2>&1 || true)
-        BAI=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam.bai --terse 2>&1 || true)
-        log "BAM: '$BAM', BAI: '$BAI'"
+        BAM=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam --terse 2>/dev/null || true)
+        BAI=$(timeout 30 bs dataset -c POWH content --id=$DATID --extension=bam.bai --terse 2>/dev/null || true)
         
         if [[ -z "$BAM" ]] || [[ -z "$BAI" ]] || [[ "$BAM" == *"Error"* ]] || [[ "$BAI" == *"Error"* ]]; then
-            log_warn "Failed to get BAM/BAI files for dataset ${DATID}"
             return 1
         fi
         
-        log "Getting file links..."
-        AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAM" 2>&1 || true)
+        AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAM" 2>/dev/null || true)
         if [[ -z "$AWS_RSA256_link" ]] || [[ "$AWS_RSA256_link" == *"Error"* ]]; then
-            log_warn "Failed to get BAM link: $AWS_RSA256_link"
             return 1
         fi
         
-        wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>&1 || true)
+        wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>/dev/null || true)
         BAMPre=$(echo "$wget_out" | grep -i "Location" | tail -n 1 | awk '{print $2}' || true)
         
-        AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAI" 2>&1 || true)
+        AWS_RSA256_link=$(timeout 30 bs -c POWH file link -i "$BAI" 2>/dev/null || true)
         if [[ -z "$AWS_RSA256_link" ]] || [[ "$AWS_RSA256_link" == *"Error"* ]]; then
-            log_warn "Failed to get BAI link: $AWS_RSA256_link"
             return 1
         fi
         
-        wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>&1 || true)
+        wget_out=$(timeout 30 wget --save-headers --max-redirect=0 -O - "$AWS_RSA256_link" 2>/dev/null || true)
         BAIPre=$(echo "$wget_out" | grep -i "Location" | tail -n 1 | awk '{print $2}' || true)
         
-        log "Final URLs - BAM: '$BAMPre', BAI: '$BAIPre'"
         if [[ -z "$BAMPre" ]] || [[ -z "$BAIPre" ]]; then
-            log_warn "Failed to get valid presigned URLs"
             return 1
         fi
         
@@ -427,6 +413,7 @@ generate_xml_single() {
                 
                 # Get presigned URLs with timeout
                 log "Getting presigned URLs..."
+                # Capture output in a subshell to prevent log contamination
                 if presign_result=$(get_presign 2>/dev/null) && [[ -n "$presign_result" ]]; then
                     read -r BAMpresign BAIpresign <<< "$presign_result"
                     if [[ -n "$BAMpresign" ]] && [[ -n "$BAIpresign" ]]; then
