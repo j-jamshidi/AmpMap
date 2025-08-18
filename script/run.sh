@@ -2,9 +2,9 @@
 set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
 # ONT Amplicon Analysis Pipeline - Containerized Version
-# Author: Javad Jafari
+# Author: Javad Jamshidi
 # Version: 2.0
-# Description: Processes barcoded amplicon sequences for variant calling and phasing
+# Description: Processes barcoded amplicon sequences for variant calling, localisation and phasing
 
 # Usage and validation
 usage() {
@@ -12,18 +12,18 @@ usage() {
 Usage: $0 <RUN_ID>
 
 Description:
-    ONT Amplicon Analysis Pipeline for variant calling and phasing
+    ONT Amplicon Analysis Pipeline for variant calling, localisation and phasing
     
 Arguments:
     RUN_ID    Unique identifier for the sequencing run
     
 Requirements:
     - Docker installed and running
-    - sample_sheet.csv in /EBSDataDrive/ONT/Runs/RUN_ID/
-    - BAM files in /EBSDataDrive/ONT/Runs/RUN_ID/bam_pass/barcodeXX/
+    - sample_sheet.csv in BASEDIR
+    - BAM files in BASEDIR/bam_pass/barcodeXX/
     
 Example:
-    $0 my_ont_run_001
+    $0 ONT_A_18052026
 EOF
 }
 
