@@ -1,36 +1,130 @@
 #!/bin/bash
+set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
 # ONT Amplicon Analysis Pipeline - Containerized Version
-# Processes barcoded amplicon sequences for variant calling and phasing
+# Author: Javad Jafari
+# Version: 2.0
+# Description: Processes barcoded amplicon sequences for variant calling and phasing
 
-RUNID=$1
+# Usage and validation
+usage() {
+    cat << EOF
+Usage: $0 <RUN_ID>
+
+Description:
+    ONT Amplicon Analysis Pipeline for variant calling and phasing
+    
+Arguments:
+    RUN_ID    Unique identifier for the sequencing run
+    
+Requirements:
+    - Docker installed and running
+    - sample_sheet.csv in /EBSDataDrive/ONT/Runs/RUN_ID/
+    - BAM files in /EBSDataDrive/ONT/Runs/RUN_ID/bam_pass/barcodeXX/
+    
+Example:
+    $0 my_ont_run_001
+EOF
+}
+
+# Input validation
+if [[ $# -ne 1 ]]; then
+    echo "Error: Incorrect number of arguments" >&2
+    usage
+    exit 1
+fi
+
+RUNID="$1"
+
+# Validate RUN_ID format (alphanumeric and underscores only)
+if [[ ! "$RUNID" =~ ^[a-zA-Z0-9_]+$ ]]; then
+    echo "Error: RUN_ID must contain only alphanumeric characters and underscores" >&2
+    exit 1
+fi
+
+# Configuration
 BASEDIR="/EBSDataDrive/ONT/Runs/${RUNID}"
 WORKDIR="${BASEDIR}/result"
 REFERENCE="/EFSGaiaDataDrive/ref/ONT/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna"
 
+# Validate required paths
+if [[ ! -d "$BASEDIR" ]]; then
+    echo "Error: Base directory does not exist: $BASEDIR" >&2
+    exit 1
+fi
+
+if [[ ! -f "$REFERENCE" ]]; then
+    echo "Error: Reference genome not found: $REFERENCE" >&2
+    exit 1
+fi
+
+if [[ ! -f "${BASEDIR}"/*sample_sheet.csv ]]; then
+    echo "Error: sample_sheet.csv not found in $BASEDIR" >&2
+    exit 1
+fi
+
 # Functions
+
+# Check Docker availability
+check_docker() {
+    if ! command -v docker &> /dev/null; then
+        error_exit "Docker is not installed or not in PATH"
+    fi
+    
+    if ! docker info &> /dev/null; then
+        error_exit "Docker daemon is not running"
+    fi
+}
 
 # Check and pull required Docker images if not present
 pull_docker_images() {
     log "Checking required Docker images..."
     
-    if ! docker image inspect hkubal/clair3:latest >/dev/null 2>&1; then
-        log "Pulling hkubal/clair3:latest..."
-        docker pull hkubal/clair3:latest
-    fi
+    local images=("hkubal/clair3:latest" "javadj/ontampip:latest")
     
-    if ! docker image inspect javadj/ontampip:latest >/dev/null 2>&1; then
-        log "Pulling javadj/ontampip:latest..."
-        docker pull javadj/ontampip:latest
-    fi
+    for image in "${images[@]}"; do
+        if ! docker image inspect "$image" >/dev/null 2>&1; then
+            log "Pulling $image..."
+            if ! docker pull "$image"; then
+                error_exit "Failed to pull Docker image: $image"
+            fi
+        else
+            log "Image $image already available locally"
+        fi
+    done
     
     log "Docker images ready!"
 }
 
-# Logging function
+# Logging function with levels
 log() {
-    echo -e "$(date '+%Y-%m-%d %H:%M:%S') - $1"
+    local level="${2:-INFO}"
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') [$level] - $1"
 }
+
+log_error() {
+    log "$1" "ERROR" >&2
+}
+
+log_warn() {
+    log "$1" "WARN"
+}
+
+# Error handling
+error_exit() {
+    log_error "$1"
+    exit 1
+}
+
+# Cleanup function
+cleanup() {
+    log "Pipeline interrupted. Cleaning up..."
+    # Add any cleanup operations here
+    exit 1
+}
+
+# Set up signal handlers
+trap cleanup SIGINT SIGTERM
 
 # Prepare VCF file
 prepare_vcf() {
@@ -79,16 +173,29 @@ merge_bam_files() {
     local coordinate=$3
 
     log "Merging BAM files for ${barcode}, sample ${episode}..."
-    docker run --rm -v "${BASEDIR}:/input" -v "${WORKDIR}:/output" --entrypoint sh javadj/ontampip:latest \
-        -c "samtools merge -@ 6 -u - /input/bam_pass/${barcode}/*.bam | samtools sort -@ 6 -o /output/${barcode}/temp.bam" && \
+    
+    # Check if BAM files exist
+    if [[ ! -d "${BASEDIR}/bam_pass/${barcode}" ]] || [[ -z "$(ls -A "${BASEDIR}/bam_pass/${barcode}"/*.bam 2>/dev/null)" ]]; then
+        error_exit "No BAM files found in ${BASEDIR}/bam_pass/${barcode}/"
+    fi
+    
+    # Merge, sort, and extract region
+    if ! docker run --rm -v "${BASEDIR}:/input" -v "${WORKDIR}:/output" --entrypoint sh javadj/ontampip:latest \
+        -c "samtools merge -@ 6 -u - /input/bam_pass/${barcode}/*.bam | samtools sort -@ 6 -o /output/${barcode}/temp.bam"; then
+        error_exit "Failed to merge BAM files for ${barcode}"
+    fi
+    
     docker run --rm -v "${WORKDIR}:/output" --entrypoint samtools javadj/ontampip:latest \
-        index /output/${barcode}/temp.bam && \
+        index /output/${barcode}/temp.bam || error_exit "Failed to index temp BAM"
+    
     docker run --rm -v "${WORKDIR}:/output" --entrypoint samtools javadj/ontampip:latest \
-        view -@ 6 -b /output/${barcode}/temp.bam "${coordinate}" -o /output/${barcode}/${episode}.bam && \
+        view -@ 6 -b /output/${barcode}/temp.bam "${coordinate}" -o /output/${barcode}/${episode}.bam || error_exit "Failed to extract region"
+    
     docker run --rm -v "${WORKDIR}:/output" --entrypoint samtools javadj/ontampip:latest \
-        index /output/${barcode}/${episode}.bam && \
-    rm "${WORKDIR}/${barcode}/temp"*
-log "BAM files merged!"
+        index /output/${barcode}/${episode}.bam || error_exit "Failed to index final BAM"
+    
+    rm "${WORKDIR}/${barcode}/temp"* 2>/dev/null || true
+    log "BAM files merged successfully!"
 }
 
 # Run Clair3 for variant calling
@@ -179,7 +286,7 @@ run_whatshap() {
                 # Index the output BAM only if haplotag succeeded
                 docker run --rm -v "${WORKDIR}:/data" --entrypoint samtools javadj/ontampip:latest \
                     index "/data/${barcode}/${episode}_phased.bam"
-                log "WhatsHap analysis finished successfully!"
+                log "WhatsHap analysis finished!"
             else
                 log "WhatsHap haplotag failed. Check ${whatshap_log} for details."
                 return 1
@@ -356,12 +463,12 @@ process_samples() {
 
             # VCF File Preparation
             if [[ ! "$Variant1" =~ chr ]]; then
-                log "No variant is provided, continuing with basecalling and QC..."
+                log "No variant is provided, continuing with variant calling and QC..."
             elif [[ ! "$Variant2" =~ chr ]]; then
-                log "Only one variant is provided, continuing with basecalling and QC..."
+                log "One variant is provided, continuing with variant calling, QC, and localisation..."
                 prepare_vcf "$Episode" "$Barcode" "$Variant1" ""
             else
-                log "Two variants are provided, continuing with basecalling, QC, and phasing..."
+                log "Two variants are provided, continuing with variant calling, QC, and phasing..."
                 prepare_vcf "$Episode" "$Barcode" "$Variant1" "$Variant2"
             fi
 
@@ -435,14 +542,26 @@ process_samples() {
 }
 
 # Main execution
+main() {
+    log "Starting ONT Amplicon Analysis Pipeline v2.0"
+    log "Run ID: $RUNID"
+    log "Base directory: $BASEDIR"
+    log "Work directory: $WORKDIR"
+    
+    # Pre-flight checks
+    check_docker
+    pull_docker_images
+    
+    # Create work directory
+    mkdir -p "$WORKDIR" || error_exit "Failed to create work directory: $WORKDIR"
+    
+    # Process pipeline
+    prepare_input_file
+    process_samples
+    
+    log "Pipeline execution completed successfully!"
+    log "Results available in: $WORKDIR"
+}
 
-# Pull Docker images
-pull_docker_images
-
-# Prepare input file
-prepare_input_file
-
-# Process samples
-process_samples
-
-log "Pipeline execution completed!"
+# Run main function
+main "$@"
