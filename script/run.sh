@@ -34,7 +34,7 @@ prepare_vcf() {
     local variant1=$3
     local variant2=$4
 
-    docker run --rm -v "${WORKDIR}:/data" javadj/ontamp:latest cp /app/dummy.vcf "/data/${barcode}/${episode}.vcf"
+    docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontamp:latest /app/dummy.vcf "/data/${barcode}/${episode}.vcf"
     sed -i -e "s/sample/${episode}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
 
     # Process first variant
@@ -236,16 +236,16 @@ generate_xml() {
         OUTXML="${WORKDIR}/${Barcode}/${Episode}.xml"
         
         if [ "$EpisodeWES" == "NA" ]; then
-            docker run --rm -v "${WORKDIR}:/data" javadj/ontamp:latest cp /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
+            docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontamp:latest /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
         else
             cat /EBSDataDrive/software/sample_ran.txt /EBSDataDrive/software/sample_ran_CRE_BS.txt > /EBSDataDrive/software/sample_SR.txt
             wesrun=$(cat /EBSDataDrive/software/sample_SR.txt | grep $EpisodeWES | cut -f 6 | tr '[:lower:]' '[:upper:]')
             sid=$(cat /EBSDataDrive/software/sample_SR.txt | grep $EpisodeWES | cut -f 1 | tr '[:lower:]' '[:upper:]')
             
             if [ -z "$wesrun" ]; then
-                docker run --rm -v "${WORKDIR}:/data" javadj/ontamp:latest cp /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
+                docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontamp:latest /app/solo_LR.xml "/data/${Barcode}/${Episode}.xml"
             else
-                docker run --rm -v "${WORKDIR}:/data" javadj/ontamp:latest cp /app/solo_LR_SR.xml "/data/${Barcode}/${Episode}.xml"
+                docker run --rm -v "${WORKDIR}:/data" --entrypoint cp javadj/ontamp:latest /app/solo_LR_SR.xml "/data/${Barcode}/${Episode}.xml"
                 read -r BAMpresign BAIpresign <<< $(get_presign)
                 bamurl=$(echo $BAMpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
                 baiurl=$(echo $BAIpresign | sed -r 's/\//\\\//g' | sed -r 's/&/\\&amp;/g')
