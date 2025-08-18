@@ -348,9 +348,8 @@ add_variant_info_to_report() {
         awk -v var1="$variant1" -v var2="$variant2" -v dist="$distance" '
         /^Amplicon length:/ {
             print $0
-            print "\nVariants:"
-            print "First variant: " var1
-            print "Second variant: " var2
+            print "Variant 1: " var1
+            print "Variant 2: " var2
             print "Distance between variants: " dist " bp"
             next
         }
