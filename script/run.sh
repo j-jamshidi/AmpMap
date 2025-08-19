@@ -341,6 +341,7 @@ add_variant_info_to_report() {
     local distance=$((pos2 - pos1))
     distance=${distance#-}
     
+    
     # Create temporary file with variant info
     local temp_file="${WORKDIR}/${barcode}/temp_variant_info.txt"
     
