@@ -335,10 +335,11 @@ add_variant_info_to_report() {
     local variant2=$4
     local report_file="${WORKDIR}/${barcode}/${episode}_report.txt"
     
-    # Extract positions for distance calculation
-    local pos1=$(echo "$variant1" | sed 's/.*://' | sed 's/[^0-9].*//')
-    local pos2=$(echo "$variant2" | sed 's/.*://' | sed 's/[^0-9].*//')
+    # Extract positions for distance calculation (handles both > and : as separators)
+    local pos1=$(echo "$variant1" | sed -E 's/^[^:]+:([0-9]+).*/\1/')
+    local pos2=$(echo "$variant2" | sed -E 's/^[^:]+:([0-9]+).*/\1/')
     local distance=$((pos2 - pos1))
+    distance=${distance#-}
     
     # Create temporary file with variant info
     local temp_file="${WORKDIR}/${barcode}/temp_variant_info.txt"
