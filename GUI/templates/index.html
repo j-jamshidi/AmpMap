@@ -6,10 +6,10 @@
     <title>ONT File Manager</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/igv@2.8.7/dist/igv.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/igv@2.8.7/dist/igv.min.css">
+
     <style>
         .main-container {
             padding: 20px;
@@ -91,13 +91,62 @@
             display: block; /* Make all sections expanded by default */
             margin-left: 10px;
         }
-        #igvDiv {
-            width: 100%;
-            height: 500px;
-        }
+
         #ampliconChart {
             width: 100%;
             height: 500px;
+        }
+        /* Sample report modern header + tabs */
+        .sample-header {
+            background: linear-gradient(135deg, #0b6b8a 0%, #094b63 100%);
+            color: #fff;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+        }
+        .sample-header .title {
+            font-size: 1.4em;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sample-header .meta {
+            margin-top: 8px;
+            opacity: 0.95;
+        }
+        .sample-tabs.ui.menu {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #fff;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .sample-tabs .item {
+            flex: 0 0 auto;
+            transition: all 0.2s ease;
+            border-radius: 6px;
+            margin: 2px;
+        }
+        .sample-tabs .item:hover {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .sample-tabs .item.active {
+            background: linear-gradient(135deg, #0b6b8a 0%, #094b63 100%) !important;
+            color: white !important;
+            box-shadow: 0 4px 16px rgba(11, 107, 138, 0.3);
+        }
+        .sample-section.segment {
+            border-radius: 8px !important;
+            border: 1px solid rgba(34,36,38,.15) !important;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.06) !important;
         }
     </style>
 </head>
@@ -129,7 +178,6 @@
                 <a class="active item" data-tab="run-report">Run Report</a>
                 <a class="item" data-tab="sample-report">Sample Report</a>
                 <a class="item" data-tab="downloads">Downloads</a>
-                <a class="item" data-tab="igv-view">IGV View</a>
                 <a class="item" data-tab="amplicon-data">Amplicon Data</a>
             </div>
         </div>
@@ -138,7 +186,6 @@
                 <a class="active item" data-tab="run-report">Run Report</a>
                 <a class="item" data-tab="sample-report">Sample Report</a>
                 <a class="item" data-tab="downloads">Downloads</a>
-                <a class="item" data-tab="igv-view">IGV View</a>
                 <a class="item" data-tab="amplicon-data">Amplicon Data</a>
             </div>
             
@@ -148,7 +195,7 @@
             </div>
             
             <div class="ui bottom attached tab segment" data-tab="sample-report">
-                <pre id="sampleReportContent"></pre>
+                <div id="sampleReportContent"></div>
             </div>
             
             <div class="ui bottom attached tab segment" data-tab="downloads">
@@ -165,9 +212,7 @@
                 </div>
             </div>
 
-            <div class="ui bottom attached tab segment" data-tab="igv-view">
-                <div id="igvDiv"></div>
-            </div>
+
 
             <div class="ui bottom attached tab segment" data-tab="amplicon-data">
                 <canvas id="ampliconChart"></canvas>
@@ -229,13 +274,13 @@
     
                     // Load sample report
                     $.get(`/api/runs/${runId}/samples/${value}/report`, function(report) {
-                        // Process the report to apply the required styles
+                        // Split report into sections by headers that start with '='
                         const lines = report.split('\n');
                         let sections = [];
                         let currentSection = [];
-    
+
                         lines.forEach(line => {
-                            line = line.trim(); // Remove leading and trailing whitespace
+                            line = line.trim();
                             if (line.startsWith('=')) {
                                 if (currentSection.length > 0) {
                                     sections.push(currentSection);
@@ -248,66 +293,276 @@
                         if (currentSection.length > 0) {
                             sections.push(currentSection);
                         }
-    
-                        const processedReport = sections.map((section, index) => {
-                            const header = section[0];
-                            const content = section.slice(1).map(line => {
-                                if (line.startsWith('*')) {
-                                    return line.includes('PASSED') ? `<span class="bold-green">${line}</span>` : `<span class="bold-red">${line}</span>`;
-                                } else if (line.startsWith('Counting') || line.startsWith('WhatsHap') || line.startsWith('HapCUT2')) {
-                                    return line.replace(/(Cis|Trans)/g, '<strong>$1</strong>');
-                                } else if (line.endsWith('<-')) {
-                                    return `<span class="green">${line}</span>`;
-                                } else {
-                                    return line;
-                                }
-                            }).join('<br>'); // Use <br> to preserve line breaks
-    
-                            if (index === 0) {
-                                return `<strong class="bold-blue" style="font-size: 1.2em;">${header}</strong><div>${content}</div>`;
+
+                        // Build header from the first section, and tabs from the remaining sections
+                        const buildStyledLines = (linesArr) => linesArr.map(line => {
+                            if (line.startsWith('*')) {
+                                return line.includes('PASSED') ? `<span class="bold-green">${line}</span>` : `<span class="bold-red">${line}</span>`;
+                            } else if (line.startsWith('Counting') || line.startsWith('WhatsHap') || line.startsWith('HapCUT2')) {
+                                return line.replace(/(Cis|Trans)/g, '<strong>$1</strong>');
+                            } else if (line.endsWith('<-')) {
+                                return `<span class="green">${line}</span>`;
                             } else {
-                                return `<div class="foldable-section"><strong class="bold-blue foldable-header">${header}</strong><div class="foldable-content">${content}</div></div>`;
+                                return line;
                             }
-                        }).join('');
-    
-                        // Update the HTML content of the sample report
-                        $('#sampleReportContent').html(processedReport);
-    
+                        }).join('<br>');
+
+                        const firstSection = sections[0] || [];
+                        const firstTitleRaw = firstSection[0] || '';
+                        const firstTitle = firstTitleRaw.replace(/=+/g, '').trim();
+                        const firstContentHtml = buildStyledLines((firstSection.slice ? firstSection.slice(1) : []));
+                        const headerHtml = `
+                            <div class="sample-header">
+                                <div class="title">${firstTitle || 'Sample Report'}</div>
+                            </div>
+                        `;
+
+                        // Normalize titles helper
+                        const normalizeTitle = (t) => (t || '')
+                            .toLowerCase()
+                            .replace(/=+/g, '')
+                            .replace(/[^a-z0-9]+/g, ' ')
+                            .trim();
+
+                        // Build section objects for remaining sections
+                        let sectionObjs = sections.slice(1).map((section) => {
+                            const header = section[0] || '';
+                            const title = header.replace(/=+/g, '').trim();
+                            const titleNorm = normalizeTitle(title);
+                            const lines = section.slice(1);
+                            return { header, title, titleNorm, lines };
+                        });
+
+                        // Move specific content from Result to Quality Control
+                        const idxResult = sectionObjs.findIndex(s => s.titleNorm === 'result' || s.titleNorm === 'results');
+                        const idxQCForMove = sectionObjs.findIndex(s => s.titleNorm === 'quality control');
+                        
+                        if (idxResult !== -1 && idxQCForMove !== -1) {
+                            const resultLines = sectionObjs[idxResult].lines;
+                            const qcLines = sectionObjs[idxQCForMove].lines;
+                            
+                            // Find and move "Detailed categorisation of reads" section (including Trans reads line)
+                            const detailedCatStart = resultLines.findIndex(line => line.includes('Detailed categorisation of reads:'));
+                            if (detailedCatStart !== -1) {
+                                // Find the end of the detailed categorization section
+                                let detailedCatEnd = resultLines.findIndex((line, idx) => idx > detailedCatStart && 
+                                    (line.includes('Cis reads') || line.includes('Trans reads')));
+                                
+                                // If we found Cis reads, look for the line after Trans reads
+                                if (detailedCatEnd !== -1 && resultLines[detailedCatEnd].includes('Cis reads')) {
+                                    detailedCatEnd = resultLines.findIndex((line, idx) => idx > detailedCatEnd && 
+                                        line.includes('Trans reads'));
+                                    if (detailedCatEnd !== -1) {
+                                        detailedCatEnd += 1; // Include the Trans reads line
+                                    }
+                                } else if (detailedCatEnd !== -1) {
+                                    detailedCatEnd += 1; // Include the found line
+                                }
+                                
+                                const endIdx = detailedCatEnd !== -1 ? detailedCatEnd : resultLines.length;
+                                const detailedCatLines = resultLines.splice(detailedCatStart, endIdx - detailedCatStart);
+                                
+                                // Find QC PASSED/FAILED line to insert before
+                                const qcStatusIdx = qcLines.findIndex(line => 
+                                    line.includes('QC PASSED') || line.includes('QC passed') || 
+                                    line.includes('QC FAILED') || line.includes('QC failed'));
+                                if (qcStatusIdx !== -1) {
+                                    qcLines.splice(qcStatusIdx, 0, ...detailedCatLines);
+                                } else {
+                                    qcLines.unshift(...detailedCatLines);
+                                }
+                            }
+                            
+                            // Find and move "Chimeric reads percentage" line with spacing
+                            const chimericIdx = resultLines.findIndex(line => line.includes('Chimeric reads percentage:'));
+                            if (chimericIdx !== -1) {
+                                const chimericLine = resultLines.splice(chimericIdx, 1)[0];
+                                
+                                // Find QC PASSED/FAILED line to insert before
+                                const qcStatusIdx2 = qcLines.findIndex(line => 
+                                    line.includes('QC PASSED') || line.includes('QC passed') || 
+                                    line.includes('QC FAILED') || line.includes('QC failed'));
+                                if (qcStatusIdx2 !== -1) {
+                                    // Add spacing before and after chimeric reads line
+                                    qcLines.splice(qcStatusIdx2, 0, '', chimericLine, '');
+                                } else {
+                                    qcLines.unshift('', chimericLine, '');
+                                }
+                            }
+                        }
+
+                        // Merge Variant Validation into Quality Control and remove Variant Validation panel
+                        const idxVV = sectionObjs.findIndex(s => s.titleNorm === 'variant validation');
+                        let idxQC = sectionObjs.findIndex(s => s.titleNorm === 'quality control');
+                        if (idxVV !== -1) {
+                            if (idxQC === -1) {
+                                // Create Quality control section if missing
+                                sectionObjs.push({
+                                    header: 'Quality control',
+                                    title: 'Quality control',
+                                    titleNorm: 'quality control',
+                                    lines: []
+                                });
+                                idxQC = sectionObjs.length - 1;
+                            }
+                            // Prepend Variant Validation text to Quality Control
+                            sectionObjs[idxQC].lines = sectionObjs[idxVV].lines.concat(sectionObjs[idxQC].lines);
+                            // Remove Variant Validation panel
+                            sectionObjs.splice(idxVV, 1);
+                        }
+
+                        // Desired order: Result -> Quality control -> Variant calling
+                        const rankMap = new Map([
+                            ['result', 0],
+                            ['results', 0],
+                            ['quality control', 1],
+                            ['variant calling', 2]
+                        ]);
+                        sectionObjs.sort((a, b) => {
+                            const ra = rankMap.has(a.titleNorm) ? rankMap.get(a.titleNorm) : 100;
+                            const rb = rankMap.has(b.titleNorm) ? rankMap.get(b.titleNorm) : 100;
+                            if (ra !== rb) return ra - rb;
+                            return 0; // keep relative order for others
+                        });
+
+                        // For non-phasing reports without a Result section, create a Result tab with meta information
+                        const isPhasingReport = sectionObjs.some(s => s.lines.some(line => 
+                            line.includes('Counting') && line.includes('WhatsHap') && line.includes('HapCUT2')
+                        ));
+                        
+                        if (!isPhasingReport && !sectionObjs.some(s => s.titleNorm === 'result' || s.titleNorm === 'results')) {
+                            // Create a Result tab for non-phasing reports
+                            const allMetaLines = firstContentHtml.split('<br>').filter(line => 
+                                line.trim() !== '' && !line.includes('---')
+                            ).join('<br>');
+                            
+                            // Add this as a new section object at the beginning
+                            sectionObjs.unshift({
+                                header: 'Result',
+                                title: 'Result',
+                                titleNorm: 'result',
+                                lines: [allMetaLines]
+                            });
+                            
+                            // Re-sort sections to maintain order
+                            const rankMap = new Map([
+                                ['result', 0],
+                                ['results', 0],
+                                ['quality control', 1],
+                                ['variant calling', 2]
+                            ]);
+                            sectionObjs.sort((a, b) => {
+                                const ra = rankMap.has(a.titleNorm) ? rankMap.get(a.titleNorm) : 100;
+                                const rb = rankMap.has(b.titleNorm) ? rankMap.get(b.titleNorm) : 100;
+                                if (ra !== rb) return ra - rb;
+                                return 0;
+                            });
+                        }
+                        
+                        // Move Variant Matching and Variant 1 from Variant Calling to Result tab
+                        const idxResultForVariantMove = sectionObjs.findIndex(s => s.titleNorm === 'result' || s.titleNorm === 'results');
+                        const idxVariantCalling = sectionObjs.findIndex(s => s.titleNorm === 'variant calling');
+                        
+                        if (idxResultForVariantMove !== -1 && idxVariantCalling !== -1) {
+                            const resultLines = sectionObjs[idxResultForVariantMove].lines;
+                            const variantLines = sectionObjs[idxVariantCalling].lines;
+                            
+                            // Find and copy Variant Matching and Variant 1
+                            const variantMatchingIdx = variantLines.findIndex(line => line.includes('Variant Matching:'));
+                            if (variantMatchingIdx !== -1) {
+                                const variantMatchingLine = variantLines[variantMatchingIdx];
+                                const variant1Idx = variantLines.findIndex(line => line.includes('Variant 1:'));
+                                const variant1Line = variant1Idx !== -1 ? variantLines[variant1Idx] : '';
+                                
+                                // Find "Passing QC reads:" line to insert after
+                                const passingQCIdx = resultLines.findIndex(line => line.includes('Passing QC reads:'));
+                                
+                                if (passingQCIdx !== -1) {
+                                    // Insert after "Passing QC reads:" with proper spacing
+                                    const insertIdx = passingQCIdx + 1;
+                                    if (variantMatchingLine || variant1Line) resultLines.splice(insertIdx, 0, ''); // Add spacing before
+                                    if (variantMatchingLine) resultLines.splice(insertIdx + 1, 0, variantMatchingLine);
+                                    if (variant1Line) resultLines.splice(insertIdx + 2, 0, variant1Line);
+                                    if (variantMatchingLine || variant1Line) resultLines.splice(insertIdx + 3, 0, ''); // Add spacing after
+                                } else {
+                                    // If "Passing QC reads:" not found, add to the end
+                                    if (variantMatchingLine || variant1Line) resultLines.push(''); // Add spacing
+                                    if (variantMatchingLine) resultLines.push(variantMatchingLine);
+                                    if (variant1Line) resultLines.push(variant1Line);
+                                }
+                            }
+                        }
+                        
+
+                        
+                        // Build tabs
+                        const menuItems = [];
+                        const segmentsHtml = [];
+                        sectionObjs.forEach((s, idx) => {
+                            let contentHtml = buildStyledLines(s.lines);
+                            
+                            // Add meta lines from first section to Result tab
+                            if (idx === 0 && (s.titleNorm === 'result' || s.titleNorm === 'results')) {
+                                // Check if this is a phasing report (has Counting/WhatsHap/HapCUT2 lines)
+                                const isPhasingReport = contentHtml.includes('Counting') && contentHtml.includes('WhatsHap') && contentHtml.includes('HapCUT2');
+                                
+                                if (isPhasingReport) {
+                                    // Filter out dashed lines from meta content for phasing reports
+                                    const cleanMetaLines = firstContentHtml.split('<br>').filter(line => 
+                                        !line.includes('---') && line.trim() !== ''
+                                    ).join('<br>');
+                                    
+                                    // Process Result section with controlled spacing for phasing reports
+                                    let processedContent = contentHtml;
+                                    
+                                    // Remove ALL extra spacing first - be more aggressive
+                                    processedContent = processedContent.replace(/<br><br>/g, '<br>');
+                                    processedContent = processedContent.replace(/<br><br>/g, '<br>'); // Do it twice to catch any remaining
+                                    
+                                    // Add controlled spacing for specific patterns
+                                    processedContent = processedContent.replace(/(Amplicon region:.*?)<br>(Amplicon length:)/g, '$1<br><br>$2');
+                                    processedContent = processedContent.replace(/(Amplicon length:.*?)<br>(Variant 1:)/g, '$1<br><br>$2');
+                                    processedContent = processedContent.replace(/(Variant 1:.*?)<br>(Variant 2:)/g, '$1<br><br>$2');
+                                    processedContent = processedContent.replace(/(Variant 2:.*?)<br>(Distance between variants:)/g, '$1<br><br>$2');
+                                    processedContent = processedContent.replace(/(Distance between variants:.*?)<br>(Total high quality spanning reads:)/g, '$1<br><br>$2');
+                                    processedContent = processedContent.replace(/(Total high quality spanning reads:.*?)<br>(Counting.*?(?:Cis|Trans))/g, '$1<br><br>$2');
+                                    
+                                    // Group the three phase analysis lines together with NO extra spacing
+                                    processedContent = processedContent.replace(/(Counting.*?(?:Cis|Trans))<br>(WhatsHap.*?(?:Cis|Trans))<br>(HapCUT2.*?(?:Cis|Trans))/g, '$1<br>$2<br>$3');
+                                    
+                                    contentHtml = cleanMetaLines + '<br><br>' + processedContent;
+                                } else {
+                                    // For non-phasing reports, don't add meta lines if there's already content
+                                    // This prevents duplication
+                                    if (!contentHtml.trim()) {
+                                        const allMetaLines = firstContentHtml.split('<br>').filter(line => 
+                                            line.trim() !== '' && !line.includes('---')
+                                        ).join('<br>');
+                                        contentHtml = allMetaLines;
+                                    }
+                                }
+                            }
+                            
+                            const tabId = `section-${idx+1}`;
+                            menuItems.push(`<a class="item ${idx === 0 ? 'active' : ''}" data-tab="${tabId}">${s.title}</a>`);
+                            segmentsHtml.push(`<div class="ui bottom attached tab segment sample-section ${idx === 0 ? 'active' : ''}" data-tab="${tabId}">${contentHtml}</div>`);
+                        });
+
+                        const tabsWrapper = menuItems.length
+                          ? `<div class="ui pointing secondary menu sample-tabs">${menuItems.join('')}</div>${segmentsHtml.join('')}`
+                          : '';
+
+                        // Inject the header + tabs into the sample report container
+                        $('#sampleReportContent').html(headerHtml + tabsWrapper);
+
+                        // Initialize tabs for the newly inserted menu
+                        $('#sampleReportContent .menu .item').tab();
+
                         // Automatically switch to the sample report tab
                         $('.menu .item[data-tab="sample-report"]').tab('change tab', 'sample-report');
-    
-                        // Add click event listener to foldable headers
-                        $('.foldable-header').click(function() {
-                            $(this).next('.foldable-content').toggle();
-                        });
                     });
 
-                    // Load IGV view
-                    $.get(`/api/runs/${runId}/samples/${value}/xml`, function(xmlUrl) {
-                        if (xmlUrl) {
-                            const igvOptions = {
-                                genome: "hg19",
-                                locus: "chr1:155,000,000-156,000,000",
-                                tracks: [
-                                    {
-                                        name: "Sample XML",
-                                        url: xmlUrl,
-                                        format: "xml"
-                                    }
-                                ]
-                            };
-                            // Ensure the IGV view tab is active before initializing the browser
-                            $('.menu .item[data-tab="igv-view"]').tab({
-                                onVisible: function() {
-                                    igv.createBrowser(document.getElementById("igvDiv"), igvOptions);
-                                }
-                            });
-                        } else {
-                            console.error("XML URL not found");
-                        }
-                    }).fail(function() {
-                        console.error("Failed to load XML URL");
-                    });
+
 
                     // Highlight selected sample in scatter plot
                     $.get('/api/amplicon_data', function(data) {
