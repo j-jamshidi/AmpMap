@@ -447,11 +447,11 @@ generate_xml_single() {
             log "Warning: Variants are on different chromosomes for ${Episode}. Skipping coordinate adjustment."
         else
             if [ $pos1 -lt $pos2 ]; then
-                start=$((pos1 - 100))
-                end=$((pos2 + 100))
+                start=$((pos1 - 150))
+                end=$((pos2 + 150))
             else
-                start=$((pos2 - 100))
-                end=$((pos1 + 100))
+                start=$((pos2 - 150))
+                end=$((pos1 + 150))
             fi
             Coordinate="${chr1}:${start}-${end}"
         fi
