@@ -278,7 +278,7 @@
                         const lines = report.split('\n');
                         let sections = [];
                         let currentSection = [];
-
+    
                         lines.forEach(line => {
                             line = line.trim();
                             if (line.startsWith('=')) {
@@ -293,18 +293,18 @@
                         if (currentSection.length > 0) {
                             sections.push(currentSection);
                         }
-
+    
                         // Build header from the first section, and tabs from the remaining sections
                         const buildStyledLines = (linesArr) => linesArr.map(line => {
-                            if (line.startsWith('*')) {
-                                return line.includes('PASSED') ? `<span class="bold-green">${line}</span>` : `<span class="bold-red">${line}</span>`;
-                            } else if (line.startsWith('Counting') || line.startsWith('WhatsHap') || line.startsWith('HapCUT2')) {
-                                return line.replace(/(Cis|Trans)/g, '<strong>$1</strong>');
-                            } else if (line.endsWith('<-')) {
-                                return `<span class="green">${line}</span>`;
-                            } else {
-                                return line;
-                            }
+                                if (line.startsWith('*')) {
+                                    return line.includes('PASSED') ? `<span class="bold-green">${line}</span>` : `<span class="bold-red">${line}</span>`;
+                                } else if (line.startsWith('Counting') || line.startsWith('WhatsHap') || line.startsWith('HapCUT2')) {
+                                    return line.replace(/(Cis|Trans)/g, '<strong>$1</strong>');
+                                } else if (line.endsWith('<-')) {
+                                    return `<span class="green">${line}</span>`;
+                                } else {
+                                    return line;
+                                }
                         }).join('<br>');
 
                         const firstSection = sections[0] || [];
@@ -484,7 +484,7 @@
                                     if (variantMatchingLine) resultLines.splice(insertIdx + 1, 0, variantMatchingLine);
                                     if (variant1Line) resultLines.splice(insertIdx + 2, 0, variant1Line);
                                     if (variantMatchingLine || variant1Line) resultLines.splice(insertIdx + 3, 0, ''); // Add spacing after
-                                } else {
+                        } else {
                                     // If "Passing QC reads:" not found, add to the end
                                     if (variantMatchingLine || variant1Line) resultLines.push(''); // Add spacing
                                     if (variantMatchingLine) resultLines.push(variantMatchingLine);
