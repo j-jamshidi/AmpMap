@@ -740,8 +740,22 @@ main() {
     # Summary of results
     log "=== PIPELINE SUMMARY ==="
     local total_samples=$(wc -l < "${BASEDIR}/${RUNID}.info")
-    local successful_samples=$(find "${WORKDIR}" -name "*.bam" -type f | grep -v "temp" | grep -v "work" | wc -l)
-    local failed_samples=$((total_samples - successful_samples))
+    local successful_samples=0
+    local failed_samples=0
+    
+    # Check each sample for completion
+    while IFS=, read -r Batch Barcode Episode _; do
+        if [[ -f "${WORKDIR}/${Barcode}/${Episode}_report.txt" ]] && [[ -f "${WORKDIR}/${Barcode}/${Episode}.xml" ]]; then
+            # Check if pipeline.log contains any failure messages
+            if [[ -f "${WORKDIR}/${Barcode}/pipeline.log" ]] && grep -q "Skipping\|failed\|ERROR" "${WORKDIR}/${Barcode}/pipeline.log"; then
+                ((failed_samples++))
+            else
+                ((successful_samples++))
+            fi
+        else
+            ((failed_samples++))
+        fi
+    done < "${BASEDIR}/${RUNID}.info"
     
     log "Total samples processed: ${total_samples}"
     log "Successful samples: ${successful_samples}"
