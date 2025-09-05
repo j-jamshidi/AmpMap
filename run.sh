@@ -23,7 +23,74 @@ Requirements:
     - BAM files in BASEDIR/bam_pass/barcodeXX/
     
 Example:
-    $0 ONT_A_18052026
+    # Summary of results
+    log "=== PIPELINE SUMMARY ==="
+    local total_samples=$(wc -l < "${BASEDIR}/${RUNID}.info")
+    local successful_samples=0
+    local failed_samples=0
+    local variant_fails=0
+    local phasing_fails=0
+    local other_fails=0
+    
+    # Initialize arrays to store failed sample IDs
+    declare -a failed_variant_samples
+    declare -a failed_phasing_samples
+    declare -a failed_other_samples
+    
+    # Process each sample's log file
+    while IFS=, read -r Barcode Episode _; do
+        if [[ -f "${WORKDIR}/${Barcode}/pipeline.log" ]]; then
+            if grep -q "ERROR" "${WORKDIR}/${Barcode}/pipeline.log"; then
+                ((failed_samples++))
+                
+                # Categorize the failure
+                if grep -q "variant calling failure" "${WORKDIR}/${Barcode}/pipeline.log"; then
+                    ((variant_fails++))
+                    failed_variant_samples+=("${Barcode}/${Episode}")
+                elif grep -q "phasing analysis failure\|HapCUT2 failure" "${WORKDIR}/${Barcode}/pipeline.log"; then
+                    ((phasing_fails++))
+                    failed_phasing_samples+=("${Barcode}/${Episode}")
+                else
+                    ((other_fails++))
+                    failed_other_samples+=("${Barcode}/${Episode}")
+                fi
+            else
+                ((successful_samples++))
+            fi
+        else
+            ((failed_samples++))
+            ((other_fails++))
+            failed_other_samples+=("${Barcode}/${Episode}")
+        fi
+    done < "${BASEDIR}/${RUNID}.info"
+    
+    log "Total samples processed: ${total_samples}"
+    log "Successful samples: ${successful_samples}"
+    log "Failed samples: ${failed_samples}"
+    
+    if [[ $failed_samples -gt 0 ]]; then
+        log_warn "=== Failure Breakdown ==="
+        log_warn "Variant calling failures: ${variant_fails}"
+        log_warn "Phasing failures: ${phasing_fails}"
+        log_warn "Other failures: ${other_fails}"
+        
+        if [[ ${#failed_variant_samples[@]} -gt 0 ]]; then
+            log_warn "\nSamples that failed variant calling:"
+            printf '%s\n' "${failed_variant_samples[@]}" | sed 's/^/  - /'
+        fi
+        
+        if [[ ${#failed_phasing_samples[@]} -gt 0 ]]; then
+            log_warn "\nSamples that failed phasing:"
+            printf '%s\n' "${failed_phasing_samples[@]}" | sed 's/^/  - /'
+        fi
+        
+        if [[ ${#failed_other_samples[@]} -gt 0 ]]; then
+            log_warn "\nSamples that failed for other reasons:"
+            printf '%s\n' "${failed_other_samples[@]}" | sed 's/^/  - /'
+        fi
+        
+        log_warn "\nCheck individual sample logs in ${WORKDIR}/*/pipeline.log for detailed error messages"
+    }18052026
 EOF
 }
 
@@ -148,20 +215,20 @@ prepare_vcf() {
     # Process first variant
     variant1=$(echo "${variant1}" | tr ':>\t ' '-' | sed 's/--*/-/g')
     IFS='-' read -r -a array1 <<< "${variant1}"
-    sed -i -e "s/chrA/${array1[0]}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
-    sed -i -e "s/POS1/${array1[1]}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
-    sed -i -e "s/REF1/${array1[2]}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
-    sed -i -e "s/ALT1/${array1[3]}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
+    sed -i -e "s/chrA/${array1[0]:-}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
+    sed -i -e "s/POS1/${array1[1]:-}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
+    sed -i -e "s/REF1/${array1[2]:-}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
+    sed -i -e "s/ALT1/${array1[3]:-}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
     unset array1
 
     if [[ "$variant2" =~ chr ]]; then
         # Process second variant
         variant2=$(echo "${variant2}" | tr ':>\t ' '-' | sed 's/--*/-/g')
         IFS='-' read -r -a array2 <<< "${variant2}"
-        sed -i -e "s/chrB/${array2[0]}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
-        sed -i -e "s/POS2/${array2[1]}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
-        sed -i -e "s/REF2/${array2[2]}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
-        sed -i -e "s/ALT2/${array2[3]}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
+        sed -i -e "s/chrB/${array2[0]:-}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
+        sed -i -e "s/POS2/${array2[1]:-}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
+        sed -i -e "s/REF2/${array2[2]:-}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
+        sed -i -e "s/ALT2/${array2[3]:-}/g" "${WORKDIR}/${barcode}/${episode}.vcf"
         unset array2
 
         # Sort VCF file
@@ -347,9 +414,9 @@ add_variant_info_to_report() {
     local report_file="${WORKDIR}/${barcode}/${episode}_report.txt"
     
     # Extract positions for distance calculation (handles both > and : as separators)
-    local pos1=$(echo "$variant1" | sed 's/ //g' | sed -E 's/^[^:]+:([0-9]+).*/\1/')
-    local pos2=$(echo "$variant2" | sed 's/ //g' | sed -E 's/^[^:]+:([0-9]+).*/\1/')
-    local distance=$((${pos2:-0} - ${pos1:-0}))
+    local pos1=$(echo "$variant1" | sed -E 's/^[^:]+:([0-9]+).*/\1/')
+    local pos2=$(echo "$variant2" | sed -E 's/^[^:]+:([0-9]+).*/\1/')
+    local distance=$((pos2 - pos1))
     distance=${distance#-}
     
     
