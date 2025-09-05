@@ -414,9 +414,9 @@ add_variant_info_to_report() {
     local report_file="${WORKDIR}/${barcode}/${episode}_report.txt"
     
     # Extract positions for distance calculation (handles both > and : as separators)
-    local pos1=$(echo "$variant1" | sed -E 's/^[^:]+:([0-9]+).*/\1/')
-    local pos2=$(echo "$variant2" | sed -E 's/^[^:]+:([0-9]+).*/\1/')
-    local distance=$((pos2 - pos1))
+    local pos1=$(echo "$variant1" | sed 's/ //g' | sed -E 's/^[^:]+:([0-9]+).*/\1/')
+    local pos2=$(echo "$variant2" | sed 's/ //g' | sed -E 's/^[^:]+:([0-9]+).*/\1/')
+    local distance=$((${pos2:-0} - ${pos1:-0}))
     distance=${distance#-}
     
     
