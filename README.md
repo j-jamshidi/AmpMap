@@ -143,8 +143,8 @@ This pipeline is **fully containerized** using Docker, requiring minimal local d
     * Ensure Docker daemon is running
 
 2.  **Clone the Repository:**
-    * git clone https://github.com/j-jamshidi/ONT_amplicon_phase.git
-   cd ONT_amplicon_phase   
+    * git clone https://github.com/j-jamshidi/ONT_amplicon_phase.git  
+    * cd ONT_amplicon_phase 
 
 3.  **Configure `run.sh`:** 
 The `run.sh` script requires initial configuration of base and reference genome paths:
