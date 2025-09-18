@@ -8,13 +8,12 @@ This repository contains a bioinformatics pipeline designed for analyzing barcod
 - [Introduction](#introduction)
 - [Features](#features)
 - [How it Works](#how-it-works)
-    - [Configuration and Setup](#configuration-and-setup)
     - [Input Data](#input-data)
     - [Pipeline Steps](#pipeline-steps)
 - [Output Files](#output-files)
 - [Dependencies](#dependencies)
-- [Usage](#usage)
-- [Scripts Overview](#scripts-overview)
+- [Installation and Usage](#installation-and-usage)
+- [Container Architecture](#container-architecture)
 - [License](#license)
 - [Contact](#contact)
 
@@ -136,7 +135,7 @@ This pipeline is **fully containerized** using Docker, requiring minimal local d
 * **`javadj/ontampip:latest`**: Comprehensive pipeline container containing:
 
 
-## Usage
+## Installation and Usage
 
 1.  **Prerequisites:**
     * Install Docker on your system
