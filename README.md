@@ -1,4 +1,4 @@
-# Amplicon Analysis Pipeline for Oxford Nanopore Sequencing
+# Amplicon Analysis Pipeline for Oxford Nanopore Sequencing (AmpMap)
 
 This repository contains a bioinformatics pipeline designed for analyzing barcoded amplicon sequences generated from Oxford Nanopore Technology (ONT) data. The pipeline is capable of performing quality control, variant calling, and haplotype phasing, specifically tailored for two main purposes:
 1. Single-variant localization and quality control.
@@ -160,6 +160,7 @@ The `ampmap` script requires initial configuration of base and reference genome 
 
 5.  **Run the Pipeline:**
     ```bash
+    chmod +x ampmap
     ./ampmap <RUN_ID>
     ```
     Replace `<RUN_ID>` with the identifier for your run (e.g., `./ampmap my_ont_run`).
