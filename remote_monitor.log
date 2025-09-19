@@ -1,0 +1,183 @@
+2025-09-19 12:26:05,401 - INFO - Starting monitoring of ubuntu@3.24.162.88:/EBSDataDrive/ONT/Runs
+2025-09-19 12:26:05,401 - INFO - Downloads will be saved to /Users/javadjamshidi/Desktop/Runs
+2025-09-19 12:26:05,625 - INFO - Connected to ubuntu@3.24.162.88
+2025-09-19 12:26:05,625 - INFO - Executing command: find /EBSDataDrive/ONT/Runs -maxdepth 1 -type f -name "*.analysed"
+2025-09-19 12:26:05,657 - INFO - Found 0 .analysed files: set()
+2025-09-19 12:26:05,657 - INFO - Already processed: set()
+2025-09-19 12:26:05,657 - INFO - New signals to process: set()
+2025-09-19 12:26:05,658 - INFO - No new .analysed files to process
+2025-09-19 12:27:05,663 - INFO - Executing command: find /EBSDataDrive/ONT/Runs -maxdepth 1 -type f -name "*.analysed"
+2025-09-19 12:27:05,694 - INFO - Found 0 .analysed files: set()
+2025-09-19 12:27:05,694 - INFO - Already processed: set()
+2025-09-19 12:27:05,694 - INFO - New signals to process: set()
+2025-09-19 12:27:05,695 - INFO - No new .analysed files to process
+2025-09-19 12:28:05,700 - INFO - Executing command: find /EBSDataDrive/ONT/Runs -maxdepth 1 -type f -name "*.analysed"
+2025-09-19 12:28:05,728 - INFO - Found 0 .analysed files: set()
+2025-09-19 12:28:05,729 - INFO - Already processed: set()
+2025-09-19 12:28:05,729 - INFO - New signals to process: set()
+2025-09-19 12:28:05,729 - INFO - No new .analysed files to process
+2025-09-19 12:29:05,734 - INFO - Executing command: find /EBSDataDrive/ONT/Runs -maxdepth 1 -type f -name "*.analysed"
+2025-09-19 12:29:05,763 - INFO - Found 0 .analysed files: set()
+2025-09-19 12:29:05,763 - INFO - Already processed: set()
+2025-09-19 12:29:05,763 - INFO - New signals to process: set()
+2025-09-19 12:29:05,763 - INFO - No new .analysed files to process
+2025-09-19 12:30:05,768 - INFO - Executing command: find /EBSDataDrive/ONT/Runs -maxdepth 1 -type f -name "*.analysed"
+2025-09-19 12:30:05,804 - INFO - Found 1 .analysed files: {'/EBSDataDrive/ONT/Runs/Batch5.analysed'}
+2025-09-19 12:30:05,804 - INFO - Already processed: set()
+2025-09-19 12:30:05,804 - INFO - New signals to process: {'/EBSDataDrive/ONT/Runs/Batch5.analysed'}
+2025-09-19 12:30:05,804 - INFO - Processing signal file: /EBSDataDrive/ONT/Runs/Batch5.analysed
+2025-09-19 12:30:05,805 - INFO - Extracted folder name: Batch5
+2025-09-19 12:30:05,805 - INFO - Starting to process data folder: Batch5
+2025-09-19 12:30:05,805 - INFO - Data folder path: /EBSDataDrive/ONT/Runs/Batch5
+2025-09-19 12:30:05,805 - INFO - Testing folder existence with: test -d /EBSDataDrive/ONT/Runs/Batch5 && echo "exists"
+2025-09-19 12:30:05,882 - INFO - Folder test result: 'exists'
+2025-09-19 12:30:05,882 - INFO - Data folder exists, starting downloads...
+2025-09-19 12:30:06,001 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/report_auc392_20240621_1728_3a249d9d.html
+2025-09-19 12:30:06,423 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/report_auc392_20240621_1728_3a249d9d.html
+2025-09-19 12:30:06,424 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/sample_sheet.csv
+2025-09-19 12:30:06,490 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/sample_sheet.csv
+2025-09-19 12:30:06,593 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode01/HapCUT2.log
+2025-09-19 12:30:06,682 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode01/HapCUT2.log
+2025-09-19 12:30:06,682 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode01/NA24385_report.txt
+2025-09-19 12:30:06,759 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode01/NA24385_report.txt
+2025-09-19 12:30:06,759 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode01/whatshap.log
+2025-09-19 12:30:06,830 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode01/whatshap.log
+2025-09-19 12:30:06,830 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode01/pipeline.log
+2025-09-19 12:30:06,902 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode01/pipeline.log
+2025-09-19 12:30:06,902 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode01/NA24385.xml
+2025-09-19 12:30:06,982 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode01/NA24385.xml
+2025-09-19 12:30:07,085 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode02/HapCUT2.log
+2025-09-19 12:30:07,172 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode02/HapCUT2.log
+2025-09-19 12:30:07,172 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode02/NA24385_report.txt
+2025-09-19 12:30:07,239 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode02/NA24385_report.txt
+2025-09-19 12:30:07,239 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode02/whatshap.log
+2025-09-19 12:30:07,330 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode02/whatshap.log
+2025-09-19 12:30:07,330 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode02/pipeline.log
+2025-09-19 12:30:07,408 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode02/pipeline.log
+2025-09-19 12:30:07,408 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode02/NA24385.xml
+2025-09-19 12:30:07,532 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode02/NA24385.xml
+2025-09-19 12:30:07,633 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode03/HapCUT2.log
+2025-09-19 12:30:07,713 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode03/HapCUT2.log
+2025-09-19 12:30:07,713 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode03/NA24385_report.txt
+2025-09-19 12:30:07,789 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode03/NA24385_report.txt
+2025-09-19 12:30:07,789 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode03/whatshap.log
+2025-09-19 12:30:07,853 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode03/whatshap.log
+2025-09-19 12:30:07,853 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode03/pipeline.log
+2025-09-19 12:30:07,922 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode03/pipeline.log
+2025-09-19 12:30:07,922 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode03/NA24385.xml
+2025-09-19 12:30:07,995 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode03/NA24385.xml
+2025-09-19 12:30:08,104 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode04/HapCUT2.log
+2025-09-19 12:30:08,183 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode04/HapCUT2.log
+2025-09-19 12:30:08,184 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode04/NA24385_report.txt
+2025-09-19 12:30:08,257 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode04/NA24385_report.txt
+2025-09-19 12:30:08,257 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode04/whatshap.log
+2025-09-19 12:30:08,325 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode04/whatshap.log
+2025-09-19 12:30:08,325 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode04/pipeline.log
+2025-09-19 12:30:08,402 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode04/pipeline.log
+2025-09-19 12:30:08,402 - INFO - Downloading /EBSDataDrive/ONT/Runs/Batch5/result/barcode04/NA24385.xml
+2025-09-19 12:30:08,478 - INFO - Successfully downloaded /EBSDataDrive/ONT/Runs/Batch5/result/barcode04/NA24385.xml
+2025-09-19 12:30:08,503 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode05 does not exist, skipping
+2025-09-19 12:30:08,580 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode06 does not exist, skipping
+2025-09-19 12:30:08,612 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode07 does not exist, skipping
+2025-09-19 12:30:08,689 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode08 does not exist, skipping
+2025-09-19 12:30:08,723 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode09 does not exist, skipping
+2025-09-19 12:30:08,803 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode10 does not exist, skipping
+2025-09-19 12:30:08,834 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode11 does not exist, skipping
+2025-09-19 12:30:08,911 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode12 does not exist, skipping
+2025-09-19 12:30:08,945 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode13 does not exist, skipping
+2025-09-19 12:30:09,031 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode14 does not exist, skipping
+2025-09-19 12:30:09,065 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode15 does not exist, skipping
+2025-09-19 12:30:09,143 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode16 does not exist, skipping
+2025-09-19 12:30:09,180 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode17 does not exist, skipping
+2025-09-19 12:30:09,261 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode18 does not exist, skipping
+2025-09-19 12:30:09,297 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode19 does not exist, skipping
+2025-09-19 12:30:09,375 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode20 does not exist, skipping
+2025-09-19 12:30:09,411 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode21 does not exist, skipping
+2025-09-19 12:30:09,485 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode22 does not exist, skipping
+2025-09-19 12:30:09,520 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode23 does not exist, skipping
+2025-09-19 12:30:09,598 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode24 does not exist, skipping
+2025-09-19 12:30:09,630 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode25 does not exist, skipping
+2025-09-19 12:30:09,706 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode26 does not exist, skipping
+2025-09-19 12:30:09,737 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode27 does not exist, skipping
+2025-09-19 12:30:09,818 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode28 does not exist, skipping
+2025-09-19 12:30:09,851 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode29 does not exist, skipping
+2025-09-19 12:30:09,930 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode30 does not exist, skipping
+2025-09-19 12:30:09,962 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode31 does not exist, skipping
+2025-09-19 12:30:10,040 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode32 does not exist, skipping
+2025-09-19 12:30:10,072 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode33 does not exist, skipping
+2025-09-19 12:30:10,210 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode34 does not exist, skipping
+2025-09-19 12:30:10,248 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode35 does not exist, skipping
+2025-09-19 12:30:10,324 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode36 does not exist, skipping
+2025-09-19 12:30:10,359 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode37 does not exist, skipping
+2025-09-19 12:30:10,436 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode38 does not exist, skipping
+2025-09-19 12:30:10,468 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode39 does not exist, skipping
+2025-09-19 12:30:10,543 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode40 does not exist, skipping
+2025-09-19 12:30:10,577 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode41 does not exist, skipping
+2025-09-19 12:30:10,655 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode42 does not exist, skipping
+2025-09-19 12:30:10,688 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode43 does not exist, skipping
+2025-09-19 12:30:10,767 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode44 does not exist, skipping
+2025-09-19 12:30:10,799 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode45 does not exist, skipping
+2025-09-19 12:30:10,885 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode46 does not exist, skipping
+2025-09-19 12:30:10,921 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode47 does not exist, skipping
+2025-09-19 12:30:11,004 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode48 does not exist, skipping
+2025-09-19 12:30:11,050 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode49 does not exist, skipping
+2025-09-19 12:30:11,130 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode50 does not exist, skipping
+2025-09-19 12:30:11,166 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode51 does not exist, skipping
+2025-09-19 12:30:11,246 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode52 does not exist, skipping
+2025-09-19 12:30:11,277 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode53 does not exist, skipping
+2025-09-19 12:30:11,357 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode54 does not exist, skipping
+2025-09-19 12:30:11,396 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode55 does not exist, skipping
+2025-09-19 12:30:11,476 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode56 does not exist, skipping
+2025-09-19 12:30:11,511 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode57 does not exist, skipping
+2025-09-19 12:30:11,591 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode58 does not exist, skipping
+2025-09-19 12:30:11,625 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode59 does not exist, skipping
+2025-09-19 12:30:11,705 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode60 does not exist, skipping
+2025-09-19 12:30:11,740 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode61 does not exist, skipping
+2025-09-19 12:30:11,818 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode62 does not exist, skipping
+2025-09-19 12:30:11,854 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode63 does not exist, skipping
+2025-09-19 12:30:11,934 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode64 does not exist, skipping
+2025-09-19 12:30:11,965 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode65 does not exist, skipping
+2025-09-19 12:30:12,043 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode66 does not exist, skipping
+2025-09-19 12:30:12,075 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode67 does not exist, skipping
+2025-09-19 12:30:12,151 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode68 does not exist, skipping
+2025-09-19 12:30:12,183 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode69 does not exist, skipping
+2025-09-19 12:30:12,266 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode70 does not exist, skipping
+2025-09-19 12:30:12,302 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode71 does not exist, skipping
+2025-09-19 12:30:12,378 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode72 does not exist, skipping
+2025-09-19 12:30:12,412 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode73 does not exist, skipping
+2025-09-19 12:30:12,490 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode74 does not exist, skipping
+2025-09-19 12:30:12,523 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode75 does not exist, skipping
+2025-09-19 12:30:12,605 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode76 does not exist, skipping
+2025-09-19 12:30:12,643 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode77 does not exist, skipping
+2025-09-19 12:30:12,720 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode78 does not exist, skipping
+2025-09-19 12:30:12,755 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode79 does not exist, skipping
+2025-09-19 12:30:12,833 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode80 does not exist, skipping
+2025-09-19 12:30:12,867 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode81 does not exist, skipping
+2025-09-19 12:30:12,943 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode82 does not exist, skipping
+2025-09-19 12:30:12,976 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode83 does not exist, skipping
+2025-09-19 12:30:13,054 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode84 does not exist, skipping
+2025-09-19 12:30:13,088 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode85 does not exist, skipping
+2025-09-19 12:30:13,171 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode86 does not exist, skipping
+2025-09-19 12:30:13,203 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode87 does not exist, skipping
+2025-09-19 12:30:13,283 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode88 does not exist, skipping
+2025-09-19 12:30:13,320 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode89 does not exist, skipping
+2025-09-19 12:30:13,399 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode90 does not exist, skipping
+2025-09-19 12:30:13,432 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode91 does not exist, skipping
+2025-09-19 12:30:13,517 - INFO - Directory /EBSDataDrive/ONT/Runs/Batch5/result/barcode92 does not exist, skipping
+2025-09-19 12:30:13,517 - INFO - Renaming with command: mv /EBSDataDrive/ONT/Runs/Batch5.analysed /EBSDataDrive/ONT/Runs/Batch5.done
+2025-09-19 12:30:13,547 - INFO - Renamed /EBSDataDrive/ONT/Runs/Batch5.analysed to /EBSDataDrive/ONT/Runs/Batch5.done
+2025-09-19 12:31:13,552 - INFO - Executing command: find /EBSDataDrive/ONT/Runs -maxdepth 1 -type f -name "*.analysed"
+2025-09-19 12:31:13,586 - INFO - Found 0 .analysed files: set()
+2025-09-19 12:31:13,586 - INFO - Already processed: {'/EBSDataDrive/ONT/Runs/Batch5.analysed'}
+2025-09-19 12:31:13,586 - INFO - New signals to process: set()
+2025-09-19 12:31:13,586 - INFO - No new .analysed files to process
+2025-09-19 12:32:13,592 - INFO - Executing command: find /EBSDataDrive/ONT/Runs -maxdepth 1 -type f -name "*.analysed"
+2025-09-19 12:32:13,618 - INFO - Found 0 .analysed files: set()
+2025-09-19 12:32:13,618 - INFO - Already processed: {'/EBSDataDrive/ONT/Runs/Batch5.analysed'}
+2025-09-19 12:32:13,618 - INFO - New signals to process: set()
+2025-09-19 12:32:13,618 - INFO - No new .analysed files to process
+2025-09-19 12:33:13,623 - INFO - Executing command: find /EBSDataDrive/ONT/Runs -maxdepth 1 -type f -name "*.analysed"
+2025-09-19 12:33:13,650 - INFO - Found 0 .analysed files: set()
+2025-09-19 12:33:13,650 - INFO - Already processed: {'/EBSDataDrive/ONT/Runs/Batch5.analysed'}
+2025-09-19 12:33:13,650 - INFO - New signals to process: set()
+2025-09-19 12:33:13,650 - INFO - No new .analysed files to process

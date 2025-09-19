@@ -8,12 +8,18 @@ import paramiko
 import re
 import logging
 
+# Configuration - Modify these paths as needed
+HOSTNAME = 'ubuntu@3.24.162.88'
+BASE_PATH = '/EBSDataDrive/ONT/Runs'
+LOCAL_PATH = '/Users/javadjamshidi/Desktop/Runs'
+PEM_PATH = '/Volumes/1-ONT_Refs/gaia-ec2-chromwell.pem'
+
 class RemoteFileMonitor:
     def __init__(self, 
-                 hostname='ubuntu@3.24.162.88',
-                 base_path='/EBSDataDrive/ONT/Runs',
-                 local_path='/Users/javadjamshidi/Desktop/Runs',
-                 pem_path='/Volumes/1-ONT_Refs/gaia-ec2-chromwell.pem'):
+                 hostname=HOSTNAME,
+                 base_path=BASE_PATH,
+                 local_path=LOCAL_PATH,
+                 pem_path=PEM_PATH):
         """
         Initialize the Remote File Monitor
         
@@ -276,10 +282,5 @@ class RemoteFileMonitor:
             pass
 
 if __name__ == "__main__":
-    monitor = RemoteFileMonitor(
-        hostname='ubuntu@3.24.162.88',
-        base_path='/EBSDataDrive/ONT/Runs',
-        local_path='/Users/javadjamshidi/Desktop/Runs',
-        pem_path='/Volumes/1-ONT_Refs/gaia-ec2-chromwell.pem'
-    )
+    monitor = RemoteFileMonitor()
     monitor.run()
