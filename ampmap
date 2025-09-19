@@ -6,6 +6,25 @@ set -uo pipefail  # Exit on undefined vars and pipe failures, but NOT on errors
 # Version: 1.0.0
 # Description: Processes barcoded amplicon sequences for variant calling, localisation and phasing
 
+# Initialize logging
+setup_logging() {
+    local runid="$1"
+    local logfile="${WORKDIR}/${runid}.log"
+    
+    # Create log directory if it doesn't exist
+    mkdir -p "$(dirname "$logfile")"
+    
+    # Start logging
+    exec 3>&1 4>&2    # Save original stdout and stderr
+    exec 1> >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+    
+    echo "=== AmpMap Pipeline Log ===" 
+    echo "Run ID: $runid"
+    echo "Started at: $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "Working Directory: $WORKDIR"
+    echo "==============================="
+}
+
 # Usage and validation
 usage() {
     cat << EOF
@@ -113,6 +132,9 @@ fi
 BASEDIR="/EBSDataDrive/ONT/Runs/${RUNID}"
 WORKDIR="${BASEDIR}/result"
 REFERENCE="/EFSGaiaDataDrive/ref/ONT/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna"
+
+# Initialize logging after setting up WORKDIR
+setup_logging "$RUNID"
 
 # Validate required paths
 if [[ ! -d "$BASEDIR" ]]; then
@@ -716,8 +738,23 @@ process_samples() {
     done < "${BASEDIR}/${RUNID}.info"
 }
 
+# Cleanup function for logging
+cleanup_logging() {
+    local exit_code=$?
+    echo -e "\nFinished at: $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "Exit code: $exit_code"
+    echo "==============================="
+    
+    # Restore original stdout and stderr
+    exec 1>&3 3>&-
+    exec 2>&4 4>&-
+}
+
 # Main execution
 main() {
+    # Set up trap for cleanup
+    trap cleanup_logging EXIT
+    
     log "AmpMap v1.0.0"
     log "Run ID: $RUNID"
     log "Base directory: $BASEDIR"
