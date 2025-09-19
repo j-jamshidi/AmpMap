@@ -3,7 +3,7 @@ set -uo pipefail  # Exit on undefined vars and pipe failures, but NOT on errors
 
 # ONT Amplicon Analysis Pipeline - Containerized Version
 # Author: Javad Jamshidi
-# Version: 2.0
+# Version: 1.0.0
 # Description: Processes barcoded amplicon sequences for variant calling, localisation and phasing
 
 # Usage and validation
@@ -12,7 +12,7 @@ usage() {
 Usage: $0 <RUN_ID>
 
 Description:
-    ONT Amplicon Analysis Pipeline for variant calling, localisation and phasing
+    ONT Amplicon Analysis Pipeline for variant calling, localisation and phasing (AmpMap).
     
 Arguments:
     RUN_ID    Unique identifier for the sequencing run
@@ -160,7 +160,7 @@ pull_docker_images() {
         fi
     done
     
-    log "Docker images ready!"
+    log "Docker images ready!\n"
 }
 
 # Logging function with levels
@@ -718,7 +718,7 @@ process_samples() {
 
 # Main execution
 main() {
-    log "Starting ONT Amplicon Analysis Pipeline v2.0"
+    log "AmpMap v1.0.0"
     log "Run ID: $RUNID"
     log "Base directory: $BASEDIR"
     log "Work directory: $WORKDIR"

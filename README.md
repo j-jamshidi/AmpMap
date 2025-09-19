@@ -38,7 +38,7 @@ Targeted sequencing of amplicons generated using long-range PCR and sequenced wi
 
 ## How it Works
 
-The pipeline is orchestrated by a `run.sh` script, which check/download all necessary tools and integrates all the steps to process amplicon data.   
+The pipeline is orchestrated by an `ampmap` script, which check/download all necessary tools and integrates all the steps to process amplicon data.   
  
 
 ### Input Data
@@ -72,7 +72,7 @@ This structure should be present in your `BASEDIR` before running the pipeline.
 
 ### Pipeline Steps
 
-The `run.sh` script iterates through each sample defined in `sample_sheet.csv` and performs the following operations:
+The `ampmap` script iterates through each sample defined in `sample_sheet.csv` and performs the following operations:
 
 1.  **Prepare Input File:** Reads the `sample_sheet.csv` and remove any inconsistencies (e.g extra spaces) and creates a processed `.info` file.
 2.  **Create Sample Directory:** A dedicated directory is created for each barcode for results (`WORKDIR/barcodeXX`).
@@ -147,8 +147,8 @@ This pipeline is **fully containerized** using Docker, requiring minimal local d
     cd ONT_amplicon_phase 
     ```
     
-3.  **Configure `run.sh`:** 
-The `run.sh` script requires initial configuration of base and reference genome paths:
+3.  **Configure `ampmap`:** 
+The `ampmap` script requires initial configuration of base and reference genome paths:
 
    * `BASEDIR`: Root directory where raw BAM files and sample sheet are located.
    * `WORKDIR`: Directory for storing analysis results and intermediate files.
@@ -160,9 +160,9 @@ The `run.sh` script requires initial configuration of base and reference genome 
 
 5.  **Run the Pipeline:**
     ```bash
-    bash run.sh <RUN_ID>
+    ./ampmap <RUN_ID>
     ```
-    Replace `<RUN_ID>` with the identifier for your run (e.g., `run.sh my_ont_run`).
+    Replace `<RUN_ID>` with the identifier for your run (e.g., `./ampmap my_ont_run`).
 
 **Note:** The pipeline will automatically pull the required Docker images (`hkubal/clair3:latest` and `javadj/ontampip:latest`) on first run.
 
