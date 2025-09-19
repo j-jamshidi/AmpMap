@@ -156,9 +156,9 @@ The `ampmap` script requires initial configuration of base and reference genome 
 
    After setting the paths, make the `ampmap` script executable:
 
-```bash
-chmod +x ampmap
-```
+   ```bash
+   chmod +x ampmap
+   ```
 
 3.  **Prepare Input Data:**
     * Place your `sample_sheet.csv` in the `BASEDIR` (e.g.`/EBSDataDrive/ONT/Runs/${RUNID}`).
