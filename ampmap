@@ -16,13 +16,10 @@ setup_logging() {
     
     # Start logging
     exec 3>&1 4>&2    # Save original stdout and stderr
+    # Use tee with append mode to prevent truncation
     exec 1> >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
     
-    echo "=== AmpMap Pipeline Log ===" 
-    echo "Run ID: $runid"
-    echo "Started at: $(date '+%Y-%m-%d %H:%M:%S')"
-    echo "Working Directory: $WORKDIR"
-    echo "==============================="
+    echo "=== AmpMap Pipeline Log ==="
 }
 
 # Usage and validation
@@ -731,9 +728,6 @@ process_samples() {
             fi
             
             log "Processing completed for ${Barcode}/${Episode}\n"
-            
-            # Reset logging
-            exec > /dev/tty 2>&1
         }
     done < "${BASEDIR}/${RUNID}.info"
 }

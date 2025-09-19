@@ -227,22 +227,23 @@ class RemoteFileMonitor:
                 wait_time = min(check_interval * (2 ** min(retry_count, 3)), 300)
                 sleep(wait_time)
 
-class AmpliconManager:
+class GUI_AmpMap:
     def __init__(self):
+        # Set up logging first
+        self.logger = logging.getLogger('GUI_AmpMap')
+        
+        self.logger.info("Initializing GUI AmpMap")
+        self.logger.info(f"Local path: {LOCAL_PATH}")
+        self.logger.info(f"Remote host: {HOSTNAME}")
+        
         # Initialize Flask app
         self.app = Flask(__name__)
         self.init_routes()
+        self.logger.info("Flask app initialized")
         
         # Initialize remote monitor
         self.remote_monitor = RemoteFileMonitor()
-        
-        # Set up logging
-        self.logger = logging.getLogger('AmpliconManager')
-        self.logger.setLevel(logging.INFO)
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
+        self.logger.info("Remote monitor initialized")
 
     def init_routes(self):
         """Initialize Flask routes"""
@@ -355,35 +356,67 @@ class AmpliconManager:
     def start(self):
         """Start both the monitoring thread and Flask app"""
         try:
+            self.logger.info("Starting GUI AmpMap components")
+            
             # Start remote monitoring in a separate thread
             monitoring_thread = Thread(target=self.remote_monitor.run)
             monitoring_thread.daemon = True
             monitoring_thread.start()
+            self.logger.info("Remote monitoring thread started")
             
             # Start Flask app
-            self.app.run(debug=True, host='0.0.0.0', port=5001)
+            self.logger.info("Starting web interface on port 5001")
+            self.app.run(host='0.0.0.0', port=5001)  # Removed debug=True to prevent logging conflicts
             
         except Exception as e:
-            self.logger.error(f"Error starting AmpliconManager: {str(e)}")
+            self.logger.error(f"Error starting GUI AmpMap: {str(e)}")
             raise
 
 if __name__ == '__main__':
-    # Set up logging with separate loggers for different components
-    for name in ['RemoteMonitor', 'AmpliconManager']:
-        logger = logging.getLogger(name)
-        if not logger.handlers:
-            # File handler for persistent logging
-            file_handler = logging.FileHandler(f'{name.lower()}.log')
-            file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-            logger.addHandler(file_handler)
-            
-            # Console handler for immediate feedback
-            console_handler = logging.StreamHandler()
-            console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-            logger.addHandler(console_handler)
-            
-            logger.setLevel(logging.INFO)
+    # Set up logging configuration
+    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     
-    # Start the application
-    manager = AmpliconManager()
-    manager.start()
+    # Ensure log directory exists
+    log_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Create logs directory
+    logs_dir = os.path.join(log_dir, 'logs')
+    os.makedirs(logs_dir, exist_ok=True)
+    
+    # Set up common file handler for all logs
+    file_handler = logging.FileHandler(os.path.join(logs_dir, 'gui_ampmap.log'))
+    file_handler.setFormatter(logging.Formatter(log_format))
+    
+    # Configure root logger
+    logging.basicConfig(
+        level=logging.INFO,
+        format=log_format,
+        handlers=[
+            logging.StreamHandler(),  # Console output
+            file_handler  # File output
+        ]
+    )
+    
+    # Configure component-specific loggers
+    remote_monitor_logger = logging.getLogger('RemoteMonitor')
+    remote_monitor_logger.setLevel(logging.INFO)
+    remote_monitor_handler = logging.FileHandler(os.path.join(logs_dir, 'remotemonitor.log'))
+    remote_monitor_handler.setFormatter(logging.Formatter(log_format))
+    remote_monitor_logger.addHandler(remote_monitor_handler)
+    
+    # GUI_AmpMap will use the root logger's handlers
+    gui_logger = logging.getLogger('GUI_AmpMap')
+    gui_logger.setLevel(logging.INFO)
+    gui_logger.addHandler(file_handler)
+    
+    root_logger = logging.getLogger()
+    root_logger.info("=== GUI AmpMap Starting ===")
+    root_logger.info(f"Log directory: {logs_dir}")
+    
+    try:
+        # Start the application
+        app = GUI_AmpMap()
+        app.start()
+    except Exception as e:
+        root_logger.error(f"Fatal error: {str(e)}", exc_info=True)
+        raise
