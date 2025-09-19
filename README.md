@@ -147,12 +147,18 @@ This pipeline is **fully containerized** using Docker, requiring minimal local d
     cd ONT_amplicon_phase 
     ```
     
-3.  **Configure `ampmap`:** 
+3.  **Configure `ampmap` and make it executable:** 
 The `ampmap` script requires initial configuration of base and reference genome paths:
 
    * `BASEDIR`: Root directory where raw BAM files and sample sheet are located.
    * `WORKDIR`: Directory for storing analysis results and intermediate files.
    * `REFERENCE`: Path to the reference genome in FASTA format (e.g., GRCh38).
+
+   After setting the paths, make the `ampmap` script executable:
+
+       ```bash
+    chmod +x ampmap
+    ```
 
 3.  **Prepare Input Data:**
     * Place your `sample_sheet.csv` in the `BASEDIR` (e.g.`/EBSDataDrive/ONT/Runs/${RUNID}`).
