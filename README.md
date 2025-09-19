@@ -156,7 +156,7 @@ The `ampmap` script requires initial configuration of base and reference genome 
 
    After setting the paths, make the `ampmap` script executable:
 
-       ```bash
+    ```bash
     chmod +x ampmap
     ```
 
@@ -166,7 +166,6 @@ The `ampmap` script requires initial configuration of base and reference genome 
 
 5.  **Run the Pipeline:**
     ```bash
-    chmod +x ampmap
     ./ampmap <RUN_ID>
     ```
     Replace `<RUN_ID>` with the identifier for your run (e.g., `./ampmap my_ont_run`).
