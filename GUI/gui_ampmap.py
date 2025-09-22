@@ -11,7 +11,7 @@ from threading import Thread, Lock
 import logging
 
 # Import configuration
-from config import HOSTNAME, USERNAME, BASE_PATH, LOCAL_PATH, PEM_PATH
+from config import HOSTNAME, USERNAME, BASE_PATH, LOCAL_PATH, PEM_PATH, FLASK_HOST, FLASK_PORT
 
 class RemoteFileMonitor:
     def __init__(self, hostname=HOSTNAME, base_path=BASE_PATH, local_path=LOCAL_PATH, pem_path=PEM_PATH):
@@ -361,8 +361,8 @@ class GUI_AmpMap:
             self.logger.info("Remote monitoring thread started")
             
             # Start Flask app
-            self.logger.info("Starting web interface on port 5001")
-            self.app.run(host='0.0.0.0', port=5001)  # Removed debug=True to prevent logging conflicts
+            self.logger.info(f"Starting web interface on {FLASK_HOST}:{FLASK_PORT}")
+            self.app.run(host=FLASK_HOST, port=FLASK_PORT)
             
         except Exception as e:
             self.logger.error(f"Error starting GUI AmpMap: {str(e)}")
@@ -396,14 +396,19 @@ if __name__ == '__main__':
     # Configure component-specific loggers
     remote_monitor_logger = logging.getLogger('RemoteMonitor')
     remote_monitor_logger.setLevel(logging.INFO)
+    remote_monitor_logger.propagate = False  # Prevent propagation to root logger
     remote_monitor_handler = logging.FileHandler(os.path.join(logs_dir, 'remotemonitor.log'))
     remote_monitor_handler.setFormatter(logging.Formatter(log_format))
     remote_monitor_logger.addHandler(remote_monitor_handler)
     
-    # GUI_AmpMap will use the root logger's handlers
+    # GUI_AmpMap logger - separate from root logger
     gui_logger = logging.getLogger('GUI_AmpMap')
     gui_logger.setLevel(logging.INFO)
-    gui_logger.addHandler(file_handler)
+    gui_logger.propagate = False  # Prevent propagation to root logger
+    gui_handler = logging.FileHandler(os.path.join(logs_dir, 'gui_ampmap.log'))
+    gui_handler.setFormatter(logging.Formatter(log_format))
+    gui_logger.addHandler(gui_handler)
+    gui_logger.addHandler(logging.StreamHandler())  # Console output for GUI
     
     root_logger = logging.getLogger()
     root_logger.info("=== GUI AmpMap Starting ===")

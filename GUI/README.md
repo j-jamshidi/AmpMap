@@ -116,6 +116,8 @@ docker run -d \
 | `BASE_PATH` | Remote path to ONT runs | `/EBSDataDrive/ONT/Runs` |
 | `LOCAL_PATH` | Local data storage path | `/app/data` |
 | `PEM_PATH` | Path to SSH private key | `/app/config/ssh_key.pem` |
+| `FLASK_HOST` | Flask bind address | `0.0.0.0` |
+| `FLASK_PORT` | Flask port number | `5001` |
 
 ### Directory Structure
 
@@ -135,6 +137,43 @@ ontampip-gui/
 2. **Download**: When new results are detected, it downloads HTML reports, CSV files, and log files
 3. **Web Interface**: Provides a clean web interface to browse runs and samples
 4. **Visualization**: Displays analysis reports with interactive tabs and formatting
+
+## Network Access
+
+### Access from Other Computers
+
+To allow other computers on your network to access the GUI:
+
+1. **Set Flask host to bind to all interfaces** (default in Docker):
+   ```bash
+   FLASK_HOST=0.0.0.0
+   ```
+
+2. **Find your computer's IP address**:
+   ```bash
+   # On Linux/macOS
+   ip addr show | grep inet
+   # or
+   ifconfig | grep inet
+   ```
+
+3. **Access from other computers**:
+   ```
+   http://YOUR_COMPUTER_IP:5001
+   ```
+   Example: `http://192.168.1.100:5001`
+
+4. **Firewall considerations**:
+   - Ensure port 5001 is open in your firewall
+   - On macOS: System Preferences → Security & Privacy → Firewall
+   - On Linux: `sudo ufw allow 5001`
+
+### Security Note
+
+When `FLASK_HOST=0.0.0.0`, the GUI will be accessible from any computer on your network. For security:
+- Only use this on trusted networks
+- Consider using a VPN for remote access
+- Set `FLASK_HOST=127.0.0.1` to restrict to localhost only
 
 ## Troubleshooting
 
