@@ -60,8 +60,6 @@ PEM_PATH=/app/config/ssh_key.pem
 Create `ontampip-gui/docker-compose.yml`:
 
 ```yaml
-version: '3.8'
-
 services:
   ontampip-gui:
     image: javadj/ontampip_gui:latest
