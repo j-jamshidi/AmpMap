@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  ontampip-gui:
+    build: .
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped

@@ -10,12 +10,8 @@ from os.path import basename, relpath
 from threading import Thread, Lock
 import logging
 
-# Configuration - Modify these paths as needed
-HOSTNAME = "3.24.162.88"  # Just the IP, username is set separately
-USERNAME = "ubuntu"
-BASE_PATH = '/EBSDataDrive/ONT/Runs'  # Main storage path for runs on remote server
-LOCAL_PATH = Path('/Users/javadjamshidi/Desktop/Runs')  # Local path for downloaded result files
-PEM_PATH = Path('/Volumes/1-ONT_Refs/gaia-ec2-chromwell.pem')  # Path to SSH key file for remote server access
+# Import configuration
+from config import HOSTNAME, USERNAME, BASE_PATH, LOCAL_PATH, PEM_PATH
 
 class RemoteFileMonitor:
     def __init__(self, hostname=HOSTNAME, base_path=BASE_PATH, local_path=LOCAL_PATH, pem_path=PEM_PATH):
