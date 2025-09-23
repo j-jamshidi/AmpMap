@@ -187,4 +187,4 @@ The pipeline uses a **hybrid containerization approach** for optimal performance
 
 ## Contact
 
-For questions or issues, please open an issue on the GitHub repository.
+For questions or issues, please contact Javad Jamshidi at [j.jamshidi@neura.edu.au](mailto:j.jamshidi@neura.edu.au).
