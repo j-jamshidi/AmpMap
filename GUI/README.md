@@ -100,6 +100,7 @@ docker run -d \
   -e HOSTNAME=your.server.ip \
   -e USERNAME=ubuntu \
   -e BASE_PATH=/EBSDataDrive/ONT/Runs \
+  -e FLASK_HOST=0.0.0.0 \
   javadj/ontampip_gui:latest
 ```
 
@@ -140,14 +141,9 @@ ontampip-gui/
 
 ### Access from Other Computers
 
-To allow other computers on your network to access the GUI:
+**Network access is enabled by default!** Other computers on your network can access the GUI immediately.
 
-1. **Set Flask host to bind to all interfaces** (default in Docker):
-   ```bash
-   FLASK_HOST=0.0.0.0
-   ```
-
-2. **Find your computer's IP address**:
+1. **Find your computer's IP address**:
    ```bash
    # On Linux/macOS
    ip addr show | grep inet
@@ -168,12 +164,67 @@ To allow other computers on your network to access the GUI:
 
 ### Security Note
 
-When `FLASK_HOST=0.0.0.0`, the GUI will be accessible from any computer on your network. For security:
+**By default, the GUI is accessible from any computer on your network** (`FLASK_HOST=0.0.0.0`). For security:
 - Only use this on trusted networks
 - Consider using a VPN for remote access
-- Set `FLASK_HOST=127.0.0.1` to restrict to localhost only
+- To restrict to localhost only, set `FLASK_HOST=127.0.0.1` in your `.env` file
 
 ## Troubleshooting
+
+### Network Access Issues
+
+If you can't access the GUI from other computers:
+
+1. **Check Docker container is running**:
+   ```bash
+   docker-compose ps
+   docker-compose logs ontampip-gui
+   ```
+
+2. **Verify port binding**:
+   ```bash
+   docker port ontampip-gui
+   # Should show: 5001/tcp -> 0.0.0.0:5001
+   ```
+
+3. **Test local access first**:
+   ```bash
+   curl http://localhost:5001
+   ```
+
+4. **Find your IP address**:
+   ```bash
+   # macOS/Linux
+   ifconfig | grep "inet " | grep -v 127.0.0.1
+   # or
+   ip route get 1 | awk '{print $7}'
+   ```
+
+5. **Test from another computer**:
+   ```bash
+   curl http://YOUR_IP:5001
+   ```
+
+6. **Check firewall (macOS)**:
+   ```bash
+   # Disable firewall temporarily to test
+   sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate off
+   # Re-enable after testing
+   sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
+   ```
+
+7. **Check firewall (Linux)**:
+   ```bash
+   sudo ufw status
+   sudo ufw allow 5001
+   ```
+
+8. **Alternative: Use host networking**:
+   ```yaml
+   # In docker-compose.yml
+   network_mode: "host"
+   # Remove the ports section when using host mode
+   ```
 
 ### Check Logs
 

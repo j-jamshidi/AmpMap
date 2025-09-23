@@ -3,15 +3,13 @@ version: '3.8'
 services:
   ontampip-gui:
     build: .
-    network_mode: "bridge"
-    ports:
-      - "0.0.0.0:5001:5001"  # Explicitly bind to all interfaces
+    network_mode: "host"  # Use host networking for guaranteed network access
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./config:/app/config
     environment:
       - FLASK_ENV=production
-      - FLASK_HOST=0.0.0.0  # Bind to all interfaces
+      - FLASK_HOST=0.0.0.0
       - FLASK_PORT=5001
     restart: unless-stopped
