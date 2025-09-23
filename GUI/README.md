@@ -68,8 +68,10 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./config:/app/config
-    env_file:
-      - .env
+    environment:
+      - FLASK_ENV=production
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5001
     restart: unless-stopped
 ```
 
