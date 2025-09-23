@@ -45,14 +45,9 @@ chmod 600 gui-ampmap/config/ssh_key.pem
 Create `gui-ampmap/.env`:
 
 ```bash
-# Server Configuration
-HOSTNAME=3.24.162.88
+HOSTNAME=your.server.ip
 USERNAME=ubuntu
 BASE_PATH=/EBSDataDrive/ONT/Runs
-
-# Local Configuration (use defaults for Docker)
-LOCAL_PATH=/app/data
-PEM_PATH=/app/config/ssh_key.pem
 ```
 
 ### 4. Run with Docker Compose
@@ -60,14 +55,19 @@ PEM_PATH=/app/config/ssh_key.pem
 Create `gui-ampmap/docker-compose.yml`:
 
 ```yaml
+version: '3.8'
+
 services:
   gui-ampmap:
     image: javadj/gui_ampmap:latest
-    network_mode: "host"
+    ports:
+      - "5001:5001"
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./config:/app/config
+    env_file:
+      - .env
     environment:
       - FLASK_ENV=production
       - FLASK_HOST=0.0.0.0
