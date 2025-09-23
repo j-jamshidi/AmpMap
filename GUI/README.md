@@ -20,7 +20,7 @@ A containerized web interface for accessing and visualizing ONT amplicon analysi
 ### 1. Pull the Docker Image
 
 ```bash
-docker pull javadj/ontampip_gui:latest
+docker pull javadj/gui_ampmap:latest
 ```
 
 ### 2. Setup Configuration
@@ -62,7 +62,7 @@ Create `ontampip-gui/docker-compose.yml`:
 ```yaml
 services:
   ontampip-gui:
-    image: javadj/ontampip_gui:latest
+    image: javadj/gui_ampmap:latest
     network_mode: "host"
     volumes:
       - ./data:/app/data
@@ -101,7 +101,7 @@ docker run -d \
   -e HOSTNAME=your.server.ip \
   -e USERNAME=ubuntu \
   -e BASE_PATH=/EBSDataDrive/ONT/Runs \
-  javadj/ontampip_gui:latest
+  javadj/gui_ampmap:latest
 ```
 
 ## Configuration
@@ -161,7 +161,7 @@ The GUI is accessible from any computer on your network. Only use on trusted net
 ### Check Container Status
 ```bash
 docker-compose ps
-docker-compose logs ontampip-gui
+docker-compose logs gui-ampmap
 ```
 
 ### Test Access

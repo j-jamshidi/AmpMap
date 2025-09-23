@@ -1,8 +1,8 @@
 version: '3.8'
 
 services:
-  ontampip-gui:
-    image: javadj/ontampip_gui:latest
+  gui-ampmap:
+    image: javadj/gui_ampmap:latest
     network_mode: "host"
     volumes:
       - ./data:/app/data
