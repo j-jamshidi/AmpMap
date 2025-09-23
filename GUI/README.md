@@ -46,7 +46,7 @@ Create `ontampip-gui/.env`:
 
 ```bash
 # Server Configuration
-HOSTNAME=your.server.ip
+HOSTNAME=3.24.162.88
 USERNAME=ubuntu
 BASE_PATH=/EBSDataDrive/ONT/Runs
 
@@ -63,8 +63,7 @@ Create `ontampip-gui/docker-compose.yml`:
 services:
   ontampip-gui:
     image: javadj/ontampip_gui:latest
-    ports:
-      - "5001:5001"
+    network_mode: "host"
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -93,14 +92,13 @@ http://localhost:5001
 ```bash
 docker run -d \
   --name ontampip-gui \
-  -p 5001:5001 \
+  --network host \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/logs:/app/logs \
   -v $(pwd)/config:/app/config \
   -e HOSTNAME=your.server.ip \
   -e USERNAME=ubuntu \
   -e BASE_PATH=/EBSDataDrive/ONT/Runs \
-  -e FLASK_HOST=0.0.0.0 \
   javadj/ontampip_gui:latest
 ```
 
@@ -139,113 +137,44 @@ ontampip-gui/
 
 ## Network Access
 
+**✅ Network access is enabled by default!** Other computers can access the GUI immediately.
+
+### Find Your IP Address
+```bash
+# macOS/Linux
+ifconfig | grep "inet " | grep -v 127.0.0.1
+```
+
 ### Access from Other Computers
-
-**Network access is enabled by default!** Other computers on your network can access the GUI immediately.
-
-1. **Find your computer's IP address**:
-   ```bash
-   # On Linux/macOS
-   ip addr show | grep inet
-   # or
-   ifconfig | grep inet
-   ```
-
-3. **Access from other computers**:
-   ```
-   http://YOUR_COMPUTER_IP:5001
-   ```
-   Example: `http://192.168.1.100:5001`
-
-4. **Firewall considerations**:
-   - Ensure port 5001 is open in your firewall
-   - On macOS: System Preferences → Security & Privacy → Firewall
-   - On Linux: `sudo ufw allow 5001`
+```
+http://YOUR_COMPUTER_IP:5001
+```
+Example: `http://192.168.1.100:5001`
 
 ### Security Note
-
-**By default, the GUI is accessible from any computer on your network** (`FLASK_HOST=0.0.0.0`). For security:
-- Only use this on trusted networks
-- Consider using a VPN for remote access
-- To restrict to localhost only, set `FLASK_HOST=127.0.0.1` in your `.env` file
+The GUI is accessible from any computer on your network. Only use on trusted networks.
 
 ## Troubleshooting
 
-### Network Access Issues
-
-If you can't access the GUI from other computers:
-
-1. **Check Docker container is running**:
-   ```bash
-   docker-compose ps
-   docker-compose logs ontampip-gui
-   ```
-
-2. **Verify port binding**:
-   ```bash
-   docker port ontampip-gui
-   # Should show: 5001/tcp -> 0.0.0.0:5001
-   ```
-
-3. **Test local access first**:
-   ```bash
-   curl http://localhost:5001
-   ```
-
-4. **Find your IP address**:
-   ```bash
-   # macOS/Linux
-   ifconfig | grep "inet " | grep -v 127.0.0.1
-   # or
-   ip route get 1 | awk '{print $7}'
-   ```
-
-5. **Test from another computer**:
-   ```bash
-   curl http://YOUR_IP:5001
-   ```
-
-6. **Check firewall (macOS)**:
-   ```bash
-   # Disable firewall temporarily to test
-   sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate off
-   # Re-enable after testing
-   sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
-   ```
-
-7. **Check firewall (Linux)**:
-   ```bash
-   sudo ufw status
-   sudo ufw allow 5001
-   ```
-
-8. **Alternative: Use host networking**:
-   ```yaml
-   # In docker-compose.yml
-   network_mode: "host"
-   # Remove the ports section when using host mode
-   ```
-
-### Check Logs
-
+### Check Container Status
 ```bash
-docker-compose logs -f ontampip-gui
+docker-compose ps
+docker-compose logs ontampip-gui
+```
+
+### Test Access
+```bash
+# Local access
+curl http://localhost:5001
+
+# Network access
+curl http://YOUR_IP:5001
 ```
 
 ### SSH Connection Issues
-
-- Ensure SSH key has correct permissions (600)
+- Ensure SSH key has correct permissions: `chmod 600 config/ssh_key.pem`
 - Verify server hostname/IP is accessible
 - Check username is correct
-
-### Port Conflicts
-
-If port 5001 is in use, change it in docker-compose.yml:
-
-```yaml
-ports:
-  - "8080:5001"  # Use port 8080 instead
-```
 
 ## Development
 
@@ -260,3 +189,6 @@ docker build -t ontampip-gui .
 ## License
 
 MIT License
+
+## Author
+Javad Jamshidi j.jamshidi@neura.edu.au

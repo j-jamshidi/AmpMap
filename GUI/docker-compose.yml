@@ -2,16 +2,14 @@ version: '3.8'
 
 services:
   ontampip-gui:
-    build: .
-    network_mode: "bridge"
-    ports:
-      - "0.0.0.0:5001:5001"  # Explicitly bind to all interfaces
+    image: javadj/ontampip_gui:latest
+    network_mode: "host"
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./config:/app/config
     environment:
       - FLASK_ENV=production
-      - FLASK_HOST=0.0.0.0  # Bind to all interfaces
+      - FLASK_HOST=0.0.0.0
       - FLASK_PORT=5001
     restart: unless-stopped
