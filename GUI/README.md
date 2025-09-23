@@ -183,9 +183,9 @@ curl http://YOUR_IP:5001
 To build from source:
 
 ```bash
-git clone <repository>
-cd ONT_amplicon_phase/GUI
-docker build -t ontampip-gui .
+git clone https://github.com/j-jamshidi/AmpMap.git
+cd AmpMap/GUI
+docker build -t gui-ampmap .
 ```
 
 ## License
