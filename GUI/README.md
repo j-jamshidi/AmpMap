@@ -28,21 +28,21 @@ docker pull javadj/gui_ampmap:latest
 Create a directory for your configuration:
 
 ```bash
-mkdir -p ontampip-gui/config
-mkdir -p ontampip-gui/data
-mkdir -p ontampip-gui/logs
+mkdir -p gui-ampmap/config
+mkdir -p gui-ampmap/data
+mkdir -p gui-ampmap/logs
 ```
 
 Copy your SSH key to the config directory:
 
 ```bash
-cp /path/to/your/ssh_key.pem ontampip-gui/config/ssh_key.pem
-chmod 600 ontampip-gui/config/ssh_key.pem
+cp /path/to/your/ssh_key.pem gui-ampmap/config/ssh_key.pem
+chmod 600 gui-ampmap/config/ssh_key.pem
 ```
 
 ### 3. Create Environment File
 
-Create `ontampip-gui/.env`:
+Create `gui-ampmap/.env`:
 
 ```bash
 # Server Configuration
@@ -57,11 +57,11 @@ PEM_PATH=/app/config/ssh_key.pem
 
 ### 4. Run with Docker Compose
 
-Create `ontampip-gui/docker-compose.yml`:
+Create `gui-ampmap/docker-compose.yml`:
 
 ```yaml
 services:
-  ontampip-gui:
+  gui-ampmap:
     image: javadj/gui_ampmap:latest
     network_mode: "host"
     volumes:
@@ -78,7 +78,7 @@ services:
 Start the application:
 
 ```bash
-cd ontampip-gui
+cd gui-ampmap
 docker-compose up -d
 ```
 
@@ -93,7 +93,7 @@ http://localhost:5001
 
 ```bash
 docker run -d \
-  --name ontampip-gui \
+  --name gui-ampmap \
   --network host \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/logs:/app/logs \
@@ -121,7 +121,7 @@ docker run -d \
 ### Directory Structure
 
 ```
-ontampip-gui/
+gui-ampmap/
 ├── config/
 │   └── ssh_key.pem          # SSH private key
 ├── data/                    # Downloaded analysis results
