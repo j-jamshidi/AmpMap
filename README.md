@@ -39,7 +39,6 @@ Targeted sequencing of amplicons generated using long-range PCR and sequenced wi
 ## How it Works
 
 The pipeline is orchestrated by an `ampmap` script, which check/download all necessary tools and integrates all the steps to process amplicon data.   
- 
 
 ### Input Data
 The expected directory structure is as follows:
@@ -172,17 +171,19 @@ The `ampmap` script requires initial configuration of base and reference genome 
 
 **Note:** The pipeline will automatically pull the required Docker images (`hkubal/clair3:latest` and `javadj/ontampip:latest`) on first run.
 
-
-## License
-
-This project is licensed under the MIT License.
-
 ## Container Architecture
 
 The pipeline uses a **hybrid containerization approach** for optimal performance and maintainability:
 
 - **Clair3**: Uses the official `hkubal/clair3:latest` container (maintained by developers)
 - **Everything Else**: Uses `javadj/ontampip:latest` containing all other tools and scripts
+
+### Automation 
+The pipeline can be further automated using the watchdog script [`helper/ampmap_watchdog`](helper/ampmap_watchdog), which continuously monitors a specified directory for new sequencing runs and automatically triggers the pipeline for each detected run. For more details, see the [helper README](helper/readme.md). After analysis, reports are downloaded and can be accessed through a graphical user interface—refer to the [GUI README](GUI/readme.md) for usage instructions.
+
+## License
+
+This project is licensed under the MIT License.
 
 
 ## Contact

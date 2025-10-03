@@ -132,7 +132,7 @@ gui-ampmap/
 
 ## How It Works
 
-1. **Monitoring**: The application continuously monitors the remote server for `.analysed` files
+1. **Monitoring**: The application continuously monitors the remote server for `.analysed` files. These files are generated when a new run uploaded from GridION (indicated by a `.complete` file) is detected and analysed. For a detailed explanation of the monitoring process, see [ampmap_watchdog README](../helper/ampmap_watchdog/README.md).
 2. **Download**: When new results are detected, it downloads HTML reports, CSV files, and log files
 3. **Web Interface**: Provides a clean web interface to browse runs and samples
 4. **Visualization**: Displays analysis reports with interactive tabs and formatting

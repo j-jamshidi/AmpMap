@@ -6,7 +6,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 # Configuration
 BASEDIR="/EBSDataDrive/ONT/Runs"
-ANALYSIS_SCRIPT="/EBSDataDrive/ONT/script/run.sh"
+ANALYSIS_SCRIPT="/EBSDataDrive/ONT/AmpMap/ampmap"
 LOCKFILE="/tmp/ont_watchdog.lock"
 LOGFILE="${SCRIPT_DIR}/watchdog.log"
 
@@ -86,6 +86,6 @@ while true; do
         
     done < <(find "$BASEDIR" -maxdepth 1 -name "*.complete" -print0)
     
-    # Sleep for 2 hours if no files found
-    sleep 7200
+    # Sleep for 30 mins if no files found
+    sleep 1800
 done
