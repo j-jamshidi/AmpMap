@@ -7,42 +7,58 @@ Automated file processing daemon for GridION uploads and AmpMap analysis.
 The watchdog monitors for new sequencing runs uploaded from GridION devices and automatically processes them through the AmpMap pipeline.
 
 ## Workflow
-```mermaid
-flowchart TD
-       subgraph GridION Device
-              A[Upload sequencing data]
-              B[Creates: run.tar.gz & run.complete]
-       end
 
-       subgraph Server
-              C[Watchdog Monitoring]
-              D[Detects .complete file]
-              E[Extract archive & rename to .analysing]
-              F[AmpMap Analysis Pipeline]
-              G{Analysis Result}
-              H[Rename to .analysed]
-              I[Rename to .failed]
-       end
-
-       subgraph Local GUI
-              J[Detects .analysed file]
-              K[Downloads results]
-              L[Rename to .done]
-              M[Results available in GUI]
-       end
-
-       A --> B
-       B --> C
-       C --> D
-       D --> E
-       E --> F
-       F --> G
-       G -- Success --> H
-       G -- Failure --> I
-       H --> J
-       J --> K
-       K --> L
-       L --> M
+```
+GridION Device                 Server                           Local GUI
+     │                           │                               │
+     │ Upload sequencing data    │                               │
+     ├─────────────────────────► │                               │
+     │ Creates: run.tar.gz       │                               │
+     │         run.complete      │                               │
+                                 │                               │
+                          ┌──────▼──────┐                        │
+                          │   Watchdog  │                        │
+                          │  Monitoring │                        │
+                          └──────┬──────┘                        │
+                                 │ Detects .complete             │
+                                 ▼                               │
+                          ┌─────────────┐                        │
+                          │ Extract &   │                        │
+                          │ Rename to   │                        │
+                          │ .analysing  │                        │
+                          └──────┬──────┘                        │
+                                 │                               │
+                                 ▼                               │
+                          ┌─────────────┐                        │
+                          │   AmpMap    │                        │
+                          │  Analysis   │                        │
+                          │  Pipeline   │                        │
+                          └──────┬──────┘                        │
+                                 │                               │
+                    Success      │      Failure                  │
+                 ┌───────────────┼───────────────┐               │
+                 ▼               ▼               ▼               │
+          ┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │
+          │ Rename to   │ │ .analysing  │ │ Rename to   │        │
+          │ .analysed   │ │             │ │  .failed    │        │
+          └──────┬──────┘ └──────┬──────┘ └─────────────┘        │
+                 │               │                               │
+                 └───────────────┤                               │
+                                 │ Ready for download            │
+                                 ├──────────────────────────────►│
+                                 │                               │
+                                 │          ┌─────────────┐      │
+                                 │          │ GUI Detects │      │
+                                 │          │ .analysed & │      │
+                                 │          │ Downloads   │      │
+                                 │          └──────┬──────┘      │
+                                 │                 │             │
+                                 │                 ▼             │
+                          ┌──────▼──────┐   ┌─────────────┐      │
+                          │ Rename to   │   │ Results     │      │
+                          │   .done     │   │ Available   │      │
+                          └─────────────┘   │ in GUI      │      │
+                                            └─────────────┘      │
 ```
 
 ### Process Steps
