@@ -14,6 +14,7 @@ This repository contains a bioinformatics pipeline designed for analyzing barcod
 - [Dependencies](#dependencies)
 - [Installation and Usage](#installation-and-usage)
 - [Container Architecture](#container-architecture)
+- [Automation](#automation)
 - [License](#license)
 - [Contact](#contact)
 
@@ -178,8 +179,8 @@ The pipeline uses a **hybrid containerization approach** for optimal performance
 - **Clair3**: Uses the official `hkubal/clair3:latest` container (maintained by developers)
 - **Everything Else**: Uses `javadj/ontampip:latest` containing all other tools and scripts
 
-### Automation 
-The pipeline can be further automated using the watchdog script [`helper/ampmap_watchdog`](helper/ampmap_watchdog), which continuously monitors a specified directory for new sequencing runs and automatically triggers the pipeline for each detected run. For more details, see the [helper README](helper/readme.md). After analysis, reports are downloaded and can be accessed through a graphical user interface—refer to the [GUI README](GUI/readme.md) for usage instructions.
+## Automation 
+The pipeline can be further automated using the watchdog script [`helper/ampmap_watchdog`](helper/ampmap_watchdog), which continuously monitors a specified directory for new sequencing runs and automatically triggers the pipeline for each detected run. For more details, see the [helper README](helper/README.md). After analysis, reports are downloaded and can be accessed through a graphical user interface—refer to the [GUI README](GUI/README.md) for usage instructions.
 
 ## License
 
