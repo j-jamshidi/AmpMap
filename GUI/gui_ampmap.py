@@ -183,8 +183,8 @@ class RemoteFileMonitor:
             self.logger.error(f"Error processing directory {self._sanitize_log_input(remote_dir)}: {self._sanitize_log_input(str(e))}")
             raise
 
-    def run(self, check_interval=60):
-        """Start monitoring for new files"""
+    def run(self, check_interval=300):
+
         self.logger.info(f"Starting monitoring of {self._sanitize_log_input(self.hostname)}:{self._sanitize_log_input(self.base_path)}")
         
         connected = False
@@ -220,7 +220,7 @@ class RemoteFileMonitor:
                     except:
                         pass
                         
-                wait_time = min(check_interval * (2 ** min(retry_count, 3)), 300)
+                wait_time = min(check_interval * (2 ** min(retry_count, 3)), 600)
                 sleep(wait_time)
 
 class GUI_AmpMap:
