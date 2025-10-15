@@ -1,5 +1,10 @@
 # ONT AmpMap GUI
 
+<p align="center">
+  <img src="https://www.docker.com/wp-content/uploads/2022/03/Moby-logo.png" alt="Docker" width="120" style="margin-right:20px;"/>
+  <img src="https://www.python.org/static/community_logos/python-logo-master-v3-TM.png" alt="Python" width="160"/>
+</p>
+
 A containerized web interface for accessing and visualizing ONT amplicon analysis results.
 
 ## Features
@@ -20,7 +25,7 @@ A containerized web interface for accessing and visualizing ONT amplicon analysi
 ### 1. Pull the Docker Image
 
 ```bash
-docker pull javadj/gui_ampmap:latest
+docker pull javadj/ampmap-gui:latest
 ```
 
 ### 2. Setup Configuration
@@ -28,21 +33,21 @@ docker pull javadj/gui_ampmap:latest
 Create a directory for your configuration:
 
 ```bash
-mkdir -p gui-ampmap/config
-mkdir -p gui-ampmap/data
-mkdir -p gui-ampmap/logs
+mkdir -p ampmap-gui/config
+mkdir -p ampmap-gui/data
+mkdir -p ampmap-gui/logs
 ```
 
 Copy your SSH key to the config directory:
 
 ```bash
-cp /path/to/your/ssh_key.pem gui-ampmap/config/ssh_key.pem
-chmod 600 gui-ampmap/config/ssh_key.pem
+cp /path/to/your/ssh_key.pem ampmap-gui/config/ssh_key.pem
+chmod 600 ampmap-gui/config/ssh_key.pem
 ```
 
 ### 3. Create Environment File
 
-Create `gui-ampmap/.env`:
+Create `ampmap-gui/.env`:
 
 ```bash
 HOSTNAME=your.server.ip
@@ -52,14 +57,14 @@ BASE_PATH=/EBSDataDrive/ONT/Runs
 
 ### 4. Run with Docker Compose
 
-Create `gui-ampmap/docker-compose.yml`:
+Create `ampmap-gui/docker-compose.yml`:
 
 ```yaml
 version: '3.8'
 
 services:
-  gui-ampmap:
-    image: javadj/gui_ampmap:latest
+  ampmap-gui:
+    image: javadj/ampmap-gui:latest
     ports:
       - "5001:5001"
     volumes:
@@ -78,7 +83,7 @@ services:
 Start the application:
 
 ```bash
-cd gui-ampmap
+cd ampmap-gui
 docker-compose up -d
 ```
 
@@ -93,7 +98,7 @@ http://localhost:5001
 
 ```bash
 docker run -d \
-  --name gui-ampmap \
+  --name ampmap-gui \
   --network host \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/logs:/app/logs \
@@ -101,7 +106,7 @@ docker run -d \
   -e HOSTNAME=your.server.ip \
   -e USERNAME=ubuntu \
   -e BASE_PATH=/EBSDataDrive/ONT/Runs \
-  javadj/gui_ampmap:latest
+  javadj/ampmap-gui:latest
 ```
 
 ## Configuration
@@ -121,7 +126,7 @@ docker run -d \
 ### Directory Structure
 
 ```
-gui-ampmap/
+ampmap-gui/
 ├── config/
 │   └── ssh_key.pem          # SSH private key
 ├── data/                    # Downloaded analysis results
@@ -161,7 +166,7 @@ The GUI is accessible from any computer on your network. Only use on trusted net
 ### Check Container Status
 ```bash
 docker-compose ps
-docker-compose logs gui-ampmap
+docker-compose logs ampmap-gui
 ```
 
 ### Test Access
@@ -185,7 +190,7 @@ To build from source:
 ```bash
 git clone https://github.com/j-jamshidi/AmpMap.git
 cd AmpMap/GUI
-docker build -t gui-ampmap .
+docker build -t ampmap-gui .
 ```
 
 ## License
