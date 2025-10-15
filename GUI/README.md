@@ -1,9 +1,8 @@
 # ONT AmpMap GUI
 
-<p align="center">
-  <img src="https://www.docker.com/wp-content/uploads/2022/03/Moby-logo.png" alt="Docker" width="120" style="margin-right:20px;"/>
-  <img src="https://www.python.org/static/community_logos/python-logo-master-v3-TM.png" alt="Python" width="160"/>
-</p>
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![Flask](https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white)
 
 A containerized web interface for accessing and visualizing ONT amplicon analysis results.
 
