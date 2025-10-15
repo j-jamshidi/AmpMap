@@ -185,7 +185,7 @@ The pipeline uses a **hybrid containerization approach** for optimal performance
 - **Everything Else**: Uses `javadj/ontampip:latest` containing all other tools and scripts
 
 ## Automation 
-The pipeline can be further automated using the watchdog script [`helper/ampmap_watchdog`](helper/ampmap_watchdog), which continuously monitors a specified directory for new sequencing runs and automatically triggers the pipeline for each detected run. For more details, see the [helper README](helper/README.md). After analysis, reports are downloaded and can be accessed through a graphical user interface—refer to the [GUI README](GUI/README.md) for usage instructions.
+The pipeline can be automated using the watchdog script [`AmpMap Watchdog`](helper/ampmap_watchdog), which continuously monitors a specified directory for new sequencing runs and automatically triggers the pipeline for each detected run. For more details check the [helper directory](helper) and see the [AmpMap Watchdog README](helper/README.md). The analysis directory can be monitored using the GUI scripts that are provided in the [GUI directory](GUI). Once the analysis is complete, reports are downloaded and can be accessed through a graphical user interface—refer to the [GUI README](GUI/README.md) for usage instructions.
 
 ## License
 
