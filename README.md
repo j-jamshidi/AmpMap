@@ -32,7 +32,7 @@ Targeted sequencing of amplicons generated using long-range PCR and sequenced wi
 * **Automated Workflow:** Streamlines the analysis from raw BAMs to a pulished report for phasing or variant localisation. 
 * **Quality Control (QC):**
     * Assesses general sequencing quality (read length, mapping quality, base quality, read identity) for each amplicon.
-    * Filters reads based on user-defined quality thresholds (default QMAP>20) for downstream analysis.
+    * Filters reads based on user-defined quality thresholds (default MAPQ>=20) for downstream analysis.
     * Provides a comprehensive QC report.
 * **Variant Calling:** Utilizes Clair3 for accurate single nucleotide polymorphism (SNP) and indel calling.
 * **Haplotype Phasing:**
