@@ -31,7 +31,7 @@ Targeted sequencing of amplicons generated using long-range PCR and sequenced wi
 ## Latest Updates
 
 ### Version 1.1.0 (Latest)
-- **MinKnow Update**: Validated for MinKNOW V25.09.18 and basecalling model dna_r10.4.1_e8.2_400bps_sup@v5.2.0
+- **MinKnow Update**: Validated for MinKNOW V25.09.18 
 - **Updated Bsecalling model**: Validated for dna_r10.4.1_e8.2_400bps_sup@v5.2.0
 
 ## Features
