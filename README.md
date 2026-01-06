@@ -11,6 +11,7 @@ This repository contains a bioinformatics pipeline designed for analyzing barcod
 
 ## Table of Contents
 - [Introduction](#introduction)
+- [Latest Updates](#latest-updates)
 - [Features](#features)
 - [How it Works](#how-it-works)
     - [Input Data](#input-data)
@@ -26,6 +27,16 @@ This repository contains a bioinformatics pipeline designed for analyzing barcod
 ## Introduction
 
 Targeted sequencing of amplicons generated using long-range PCR and sequenced with Oxford Nanopore Technology allows for in-depth analysis of specific genomic regions. This pipeline automates the process of evaluating the quality of these reads, identifying genetic variants within the amplicons, and more specifically determining the phase of two pre-determined variants (i.e., whether two variants are on the same chromosome - *cis* - or on different chromosomes - *trans*). The pipeline is flexible, and also supports single-variant localization/QC.
+
+## Latest Updates
+
+### Version 1.1.0 (Latest)
+- **Enhanced Error Handling**: Improved BAM file validation and comprehensive error checking
+- **Security Improvements**: Added input sanitization to prevent command injection vulnerabilities
+- **Configurable Deployment**: S3 bucket and timeout settings now configurable via environment variables
+- **Better Resource Management**: Added Docker container cleanup and increased S3 upload timeout
+- **Robust Input Validation**: Enhanced sample sheet format validation and coordinate checking
+- **Bug Fixes**: Resolved unbound variable errors and logging setup issues
 
 ## Features
 

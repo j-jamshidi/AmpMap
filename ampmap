@@ -3,7 +3,7 @@ set -uo pipefail  # Exit on undefined vars and pipe failures, but NOT on errors
 
 # ONT Amplicon Analysis Pipeline - Containerized Version
 # Author: Javad Jamshidi
-# Version: 1.0.0
+# Version: 1.1.0
 # Description: Processes barcoded amplicon sequences for variant calling, localisation and phasing
 
 # Initialize logging
@@ -682,7 +682,7 @@ main() {
     # Set up trap for cleanup
     trap cleanup_logging EXIT
     
-    log "AmpMap v1.0.0"
+    log "AmpMap v1.1.0"
     log "Run ID: $RUNID"
     log "Base directory: $BASEDIR"
     log "Work directory: $WORKDIR"
