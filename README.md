@@ -31,12 +31,8 @@ Targeted sequencing of amplicons generated using long-range PCR and sequenced wi
 ## Latest Updates
 
 ### Version 1.1.0 (Latest)
-- **Enhanced Error Handling**: Improved BAM file validation and comprehensive error checking
-- **Security Improvements**: Added input sanitization to prevent command injection vulnerabilities
-- **Configurable Deployment**: S3 bucket and timeout settings now configurable via environment variables
-- **Better Resource Management**: Added Docker container cleanup and increased S3 upload timeout
-- **Robust Input Validation**: Enhanced sample sheet format validation and coordinate checking
-- **Bug Fixes**: Resolved unbound variable errors and logging setup issues
+- **MinKnow Update**: Validated for MinKNOW V25.09.18 and basecalling model dna_r10.4.1_e8.2_400bps_sup@v5.2.0
+- **Updated Bsecalling model**: Validated for dna_r10.4.1_e8.2_400bps_sup@v5.2.0
 
 ## Features
 
