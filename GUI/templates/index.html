@@ -106,12 +106,18 @@
             box-shadow: 0 6px 16px rgba(0,0,0,0.12);
         }
         .sample-header .title {
-            font-size: 1.4em;
+            font-size: 1em;
             font-weight: 700;
             letter-spacing: 0.2px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 10px;
+        }
+        .sample-header .version {
+            font-size: 0.7em;
+            font-weight: 400;
+            opacity: 0.9;
         }
         .sample-header .meta {
             margin-top: 8px;
@@ -151,7 +157,7 @@
     </style>
 </head>
 <body>
-    <div class="banner">Long-read Amplicon Sequencing Reports (AmpMap v1.1.0)</div>
+    <div class="banner">Long-read Amplicon Sequencing Reports (AmpMap)</div>
     <div class="ui container main-container">
         <div class="left-panel">
             <div class="ui form">
@@ -308,7 +314,9 @@
 
                         const firstSection = sections[0] || [];
                         const firstTitleRaw = firstSection[0] || '';
-                        const firstTitle = firstTitleRaw.replace(/=+/g, '').trim();
+                        console.log('Raw header from backend:', firstTitleRaw);
+                        // Keep the full header with version - don't modify it
+                        const firstTitle = firstTitleRaw;
                         const firstContentHtml = buildStyledLines((firstSection.slice ? firstSection.slice(1) : []));
                         const headerHtml = `
                             <div class="sample-header">

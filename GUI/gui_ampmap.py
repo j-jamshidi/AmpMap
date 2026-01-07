@@ -123,6 +123,10 @@ class RemoteFileMonitor:
             # Download .html, .csv files from the main folder
             self.download_files_by_pattern(data_folder, ['*.html', '*.csv'])
             
+            # Download .log files from result folder
+            result_folder = f"{data_folder}/result"
+            self.download_files_by_pattern(result_folder, ['*.log'])
+            
             # Download .log files from barcode directories
             for barcode in range(1, 93):
                 barcode_dir = f"{data_folder}/result/barcode{barcode:02d}"
@@ -310,6 +314,47 @@ class GUI_AmpMap:
                     
                 with open(report_path, 'r') as f:
                     report_content = f.read()
+                
+                # Extract AmpMap version from pipeline log
+                ampmap_version = "AmpMap"
+                try:
+                    log_files = glob.glob(os.path.join(result_dir, '*.log'))
+                    print(f"DEBUG: Found log files: {log_files}")  # Debug
+                    if log_files:
+                        with open(log_files[0], 'r') as log_file:
+                            lines = log_file.readlines()
+                            for i, line in enumerate(lines[:5]):  # Check first 5 lines
+                                print(f"DEBUG: Line {i}: {line.strip()}")  # Debug
+                                if 'AmpMap v' in line:
+                                    version_match = re.search(r'AmpMap v[\d.]+', line)
+                                    if version_match:
+                                        ampmap_version = version_match.group()
+                                        print(f"DEBUG: Found version: {ampmap_version}")  # Debug
+                                    break
+                except Exception as e:
+                    print(f"DEBUG: Version extraction failed: {e}")  # Debug
+                    pass  # Use default if version extraction fails
+                
+                print(f"DEBUG: Final ampmap_version: {ampmap_version}")  # Debug
+                
+                # Add version to the header instead of report content
+                report_lines = report_content.split('\n')
+                
+                # Find the first section header and modify it
+                for i, line in enumerate(report_lines):
+                    if 'Report for' in line:
+                        print(f"DEBUG: Original header: {line}")  # Debug
+                        # Extract sample name and add version to the right
+                        sample_match = re.search(r'Report for[:\s]*([^=]+)', line)
+                        if sample_match:
+                            sample_name = sample_match.group(1).strip()
+                            # Create new header with version on the right
+                            new_header = f"Report for: {sample_name}<span class='version'>Pipeline Version: {ampmap_version}</span>"
+                            report_lines[i] = new_header
+                            print(f"DEBUG: New header: {new_header}")  # Debug
+                        break
+                
+                report_content = '\n'.join(report_lines)
                     
                 return report_content
             except Exception as e:
@@ -330,15 +375,22 @@ class GUI_AmpMap:
                     'xml': f'{original_sample_id}.xml',
                     'HapCUT2': f'HapCUT2.log',
                     'WhatsHap': f'whatshap.log',
-                    'Pipeline': f'pipeline.log'
+                    'Pipeline': f'pipeline.log',
+                    'MainPipeline': f'{run_id}.log'
                 }
                 
                 if file_type not in file_names:
                     return jsonify({'error': 'Invalid file type'}), 400
                     
                 file_name = file_names[file_type]
-                barcode_dir = os.path.join(result_dir, f'barcode{barcode}')
-                file_path = os.path.join(barcode_dir, file_name)
+                
+                if file_type == 'MainPipeline':
+                    # Main pipeline log is in result directory
+                    file_path = os.path.join(result_dir, file_name)
+                else:
+                    # Other files are in barcode directory
+                    barcode_dir = os.path.join(result_dir, f'barcode{barcode}')
+                    file_path = os.path.join(barcode_dir, file_name)
                 
                 if not os.path.exists(file_path):
                     return jsonify({'error': 'File not found'}), 404
