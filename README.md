@@ -5,8 +5,8 @@
 ![Bash](https://img.shields.io/badge/bash-%23121011.svg?style=for-the-badge&logo=gnu-bash&logoColor=white)
 ![Bioinformatics](https://img.shields.io/badge/bioinformatics-%23FF6B6B.svg?style=for-the-badge&logo=dna&logoColor=white)
 
-This repository contains a bioinformatics pipeline designed for analyzing barcoded amplicon sequences generated from Oxford Nanopore Technology (ONT) data. The pipeline is capable of performing quality control, variant calling, and haplotype phasing, specifically tailored for two main purposes:
-1. Single-variant localization and quality control.
+This repository contains a bioinformatics pipeline designed for analysing barcoded amplicon sequences generated from Oxford Nanopore Technology (ONT) data. The pipeline is capable of performing quality control, variant calling, and haplotype phasing, specifically tailored for two main purposes:
+1. Single-variant localisation and quality control.
 2. Two-variant phasing to determine whether the variants are on the same chromosome (*cis*) or different chromosomes (*trans*).
 
 ## Table of Contents
@@ -26,11 +26,11 @@ This repository contains a bioinformatics pipeline designed for analyzing barcod
 
 ## Introduction
 
-Targeted sequencing of amplicons generated using long-range PCR and sequenced with Oxford Nanopore Technology allows for in-depth analysis of specific genomic regions. This pipeline automates the process of evaluating the quality of these reads, identifying genetic variants within the amplicons, and more specifically determining the phase of two pre-determined variants (i.e., whether two variants are on the same chromosome - *cis* - or on different chromosomes - *trans*). The pipeline is flexible, and also supports single-variant localization/QC.
+Targeted sequencing of amplicons generated using long-range PCR and sequenced with Oxford Nanopore Technology allows for in-depth analysis of specific genomic regions. This pipeline automates the process of evaluating the quality of these reads, identifying genetic variants within the amplicons, and more specifically, determining the phase of two pre-determined variants (i.e., whether two variants are on the same chromosome - *cis* - or on different chromosomes - *trans*). The pipeline is flexible and also supports single-variant localisation/QC.
 
 ## Latest Updates
 
-### Version 1.1.0 (Latest)
+### Version 1.1.0 (08.01.2026, Latest)
 - **MinKnow Update**: Validated for MinKNOW V25.09.18 
 - **Updated Bsecalling model**: Validated for dna_r10.4.1_e8.2_400bps_sup@v5.2.0
 - **Updated GUI**: The pipeline version is now displayed on the report page for each run.
@@ -41,7 +41,7 @@ Targeted sequencing of amplicons generated using long-range PCR and sequenced wi
     * Assesses general sequencing quality (read length, mapping quality, base quality, read identity) for each amplicon.
     * Filters reads based on user-defined quality thresholds (default MAPQ>=20) for downstream analysis.
     * Provides a comprehensive QC report.
-* **Variant Calling:** Utilizes Clair3 for accurate single nucleotide polymorphism (SNP) and indel calling.
+* **Variant Calling:** Utilises Clair3 for accurate single nucleotide polymorphism (SNP) and indel calling.
 * **Haplotype Phasing:**
     * **WhatsHap:** Employs WhatsHap for robust phasing of heterozygous variants.
     * **HapCUT2:** Incorporates HapCUT2 for an alternative or confirmatory phasing approach.
@@ -51,7 +51,7 @@ Targeted sequencing of amplicons generated using long-range PCR and sequenced wi
 
 ## How it Works
 
-The pipeline is orchestrated by an `ampmap` script, which check/download all necessary tools and integrates all the steps to process amplicon data.   
+The pipeline is orchestrated by an `ampmap` script, which checks/downloads all necessary tools and integrates all the steps to process amplicon data.   
 
 ### Input Data
 The expected directory structure is as follows:
@@ -79,14 +79,14 @@ This structure should be present in your `BASEDIR` before running the pipeline.
     * `Variant1`: Details of the first variant (e.g., `chr1:236011853 T>C`or `chr1:236011853:T:C`). If no variant is provided, set to empty.
     * `Variant2`: Details of the second variant (e.g., `chr1:236011853 T>C`or `chr1:236011853:T:C`). If only one variant is provided, set to empty.
     * `EpisodeWES`: WES (Whole Exome Sequencing) episode identifier for the sample, set to emty if not available.
-* **Raw BAM Files:** Barcoded BAM files organized by barcode within `BASEDIR/bam_pass/`. Each barcode directory should contain BAM files from the same barcode. This is the default structure of the Oxford Nanopore sequening output `BASEDIR/bam_pass/barcode{x}`
+* **Raw BAM Files:** Barcoded BAM files organized by barcode within `BASEDIR/bam_pass/`. Each barcode directory should contain BAM files from the same barcode. This is the default structure of the Oxford Nanopore sequencing output `BASEDIR/bam_pass/barcode{x}`
 
 
 ### Pipeline Steps
 
 The `ampmap` script iterates through each sample defined in `sample_sheet.csv` and performs the following operations:
 
-1.  **Prepare Input File:** Reads the `sample_sheet.csv` and remove any inconsistencies (e.g extra spaces) and creates a processed `.info` file.
+1.  **Prepare Input File:** Reads the `sample_sheet.csv` and removes any inconsistencies (e.g., extra spaces) and creates a processed `.info` file.
 2.  **Create Sample Directory:** A dedicated directory is created for each barcode for results (`WORKDIR/barcodeXX`).
 3.  **Prepare VCF File:**
     * Copies a `dummy.vcf` template to the sample's directory.
@@ -112,11 +112,11 @@ The `ampmap` script iterates through each sample defined in `sample_sheet.csv` a
     * **Phasing Analysis (Two Variants):** If two variants are provided, performs the following:
         * **Variant Validation:** Checks if the provided variants are adequately covered by reads and exhibit expected heterozygous patterns, flagging insufficient coverage, unexpected alleles, or extreme allele skew.
         * **Quality Control (Phasing Specific):** Filters reads based on mapping quality (MAPQ $\ge 20$) and ensures they span both variant positions. It also checks for "clean spanning reads" (reads where both variants can be confidently called as ref or alt).
-        * **Read-Based Phasing Analysis:** Analyzes the haplotagged BAM file to count reads supporting *cis* (both ref or both alt) and *trans* (one ref, one alt) configurations, providing a percentage breakdown and determining the phase based on read counts.
+        * **Read-Based Phasing Analysis:** Analyses the haplotagged BAM file to count reads supporting *cis* (both ref or both alt) and *trans* (one ref, one alt) configurations, providing a percentage breakdown and determining the phase based on read counts.
         * **VCF-Based Phasing Analysis:** Parses the WhatsHap-phased VCF and HapCUT2-phased VCF to determine the overall phase (Cis/Trans) based on the reported genotypes.
-        * Generates a detailed report (`${Episode}_report.txt`) summarizing all QC and phasing results.
+        * Generates a detailed report (`${Episode}_report.txt`) summarising all QC and phasing results.
     * **Cleanup:** Removes intermediate files and directories.
-    * **Data Upload:** Uploads the processed data for each barcode to an AWS S3 bucket and create an xml file for visualisation. 
+    * **Data Upload:** Uploads the processed data for each barcode to an AWS S3 bucket and creates an xml file for visualisation. 
 
 ## Output Files
 
@@ -140,7 +140,7 @@ For each processed sample, the following output files are generated within `WORK
 
 ## Dependencies
 
-This pipeline is **fully containerized** using Docker, requiring minimal local dependencies.
+This pipeline is **fully containerised** using Docker, requiring minimal local dependencies.
 
 **Docker Images Used:**
 * **`hkubal/clair3:latest`**: Official Clair3 container for variant calling.
@@ -174,7 +174,7 @@ The `ampmap` script requires initial configuration of base and reference genome 
 
 3.  **Prepare Input Data:**
     * Place your `sample_sheet.csv` in the `BASEDIR` (e.g.`/EBSDataDrive/ONT/Runs/${RUNID}`).
-    * Organize your raw barcoded BAM files in `BASEDIR/bam_pass/barcodeXX/` (The ONT default sequencing output structure).
+    * Organise your raw barcoded BAM files in `BASEDIR/bam_pass/barcodeXX/` (The ONT default sequencing output structure).
 
 5.  **Run the Pipeline:**
     ```bash
@@ -192,7 +192,7 @@ The pipeline uses a **hybrid containerization approach** for optimal performance
 - **Everything Else**: Uses `javadj/ontampip:latest` containing all other tools and scripts
 
 ## Automation 
-The pipeline can be automated using the watchdog script [`AmpMap Watchdog`](helper/ampmap_watchdog), which continuously monitors a specified directory for new sequencing runs and automatically triggers the pipeline for each detected run. For more details check the [helper directory](helper) and see the [AmpMap Watchdog README](helper/README.md). The analysis directory can be monitored using the GUI scripts that are provided in the [GUI directory](GUI). Once the analysis is complete, reports are downloaded and can be accessed through a graphical user interface—refer to the [GUI README](GUI/README.md) for usage instructions.
+The pipeline can be automated using the watchdog script [`AmpMap Watchdog`](helper/ampmap_watchdog), which continuously monitors a specified directory for new sequencing runs and automatically triggers the pipeline for each detected run. For more details, check the [helper directory](helper) and see the [AmpMap Watchdog README](helper/README.md). The analysis directory can be monitored using the GUI scripts that are provided in the [GUI directory](GUI). Once the analysis is complete, reports are downloaded and can be accessed through a graphical user interface—refer to the [GUI README](GUI/README.md) for usage instructions.
 
 ## License
 
