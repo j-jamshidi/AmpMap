@@ -4,11 +4,19 @@ import glob
 import re
 import paramiko
 import shlex
+from html import escape
+from io import BytesIO
 from pathlib import Path
 from time import sleep
 from os.path import basename, relpath
 from threading import Thread, Lock
 import logging
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 # Import configuration
 from config import HOSTNAME, USERNAME, BASE_PATH, LOCAL_PATH, PEM_PATH, FLASK_HOST, FLASK_PORT
@@ -245,6 +253,360 @@ class GUI_AmpMap:
         self.remote_monitor = RemoteFileMonitor()
         self.logger.info("Remote monitor initialized")
 
+    def _get_ampmap_version(self, result_dir):
+        """Extract AmpMap version from the run log."""
+        ampmap_version = "AmpMap"
+        try:
+            log_files = glob.glob(os.path.join(result_dir, '*.log'))
+            if log_files:
+                with open(log_files[0], 'r') as log_file:
+                    for line in log_file.readlines()[:5]:
+                        if 'AmpMap v' in line:
+                            version_match = re.search(r'AmpMap v[\d.]+', line)
+                            if version_match:
+                                ampmap_version = version_match.group()
+                            break
+        except Exception as e:
+            self.logger.warning(f"Version extraction failed: {str(e)}")
+        return ampmap_version
+
+    def _get_sample_report_data(self, run_id, sample_id):
+        """Load a sample report and return the data needed by UI/download routes."""
+        result_dir = os.path.join(str(LOCAL_PATH), run_id, 'result')
+
+        match = re.match(r"(.+)_b(\d{2})$", sample_id)
+        if not match:
+            return {'error': 'Invalid sample ID format'}, 400
+
+        original_sample_id, barcode = match.groups()
+        barcode_dir = os.path.join(result_dir, f'barcode{barcode}')
+        report_path = os.path.join(barcode_dir, f'{original_sample_id}_report.txt')
+
+        if not os.path.exists(report_path):
+            return {'error': 'Report not found'}, 404
+
+        with open(report_path, 'r') as f:
+            report_content = f.read()
+
+        ampmap_version = self._get_ampmap_version(result_dir)
+        report_lines = report_content.split('\n')
+        displayed_sample_name = original_sample_id
+
+        for i, line in enumerate(report_lines):
+            if 'Report for' in line:
+                sample_match = re.search(r'Report for[:\s]*([^=]+)', line)
+                if sample_match:
+                    displayed_sample_name = sample_match.group(1).strip()
+                    report_lines[i] = (
+                        f"Report for: {displayed_sample_name}"
+                        f"<span class='version'>Pipeline Version: {ampmap_version}</span>"
+                    )
+                break
+
+        return {
+            'result_dir': result_dir,
+            'original_sample_id': original_sample_id,
+            'displayed_sample_name': displayed_sample_name,
+            'barcode': barcode,
+            'ampmap_version': ampmap_version,
+            'report_content': '\n'.join(report_lines)
+        }, 200
+
+    def _normalize_report_title(self, title):
+        return re.sub(r'[^a-z0-9]+', ' ', re.sub(r'=+', '', title or '').lower()).strip()
+
+    def _split_sample_report_sections(self, report_content):
+        sections = []
+        current_section = []
+
+        for line in report_content.split('\n'):
+            line = line.strip()
+            if line.startswith('='):
+                if current_section:
+                    sections.append(current_section)
+                current_section = [line]
+            else:
+                current_section.append(line)
+
+        if current_section:
+            sections.append(current_section)
+
+        return sections
+
+    def _build_sample_report_section_objects(self, report_content):
+        """Mirror the browser's Sample Report tab section reshaping."""
+        sections = self._split_sample_report_sections(report_content)
+        first_section = sections[0] if sections else []
+        first_content_lines = [line for line in first_section[1:] if line.strip() and '---' not in line]
+
+        section_objs = []
+        for section in sections[1:]:
+            header = section[0] if section else ''
+            title = re.sub(r'=+', '', header).strip()
+            section_objs.append({
+                'header': header,
+                'title': title,
+                'titleNorm': self._normalize_report_title(title),
+                'lines': section[1:]
+            })
+
+        idx_result = next((i for i, s in enumerate(section_objs) if s['titleNorm'] in ('result', 'results')), -1)
+        idx_qc_for_move = next((i for i, s in enumerate(section_objs) if s['titleNorm'] == 'quality control'), -1)
+
+        if idx_result != -1 and idx_qc_for_move != -1:
+            result_lines = section_objs[idx_result]['lines']
+            qc_lines = section_objs[idx_qc_for_move]['lines']
+
+            detailed_cat_start = next((i for i, line in enumerate(result_lines) if 'Detailed categorisation of reads:' in line), -1)
+            if detailed_cat_start != -1:
+                detailed_cat_end = next(
+                    (
+                        i for i, line in enumerate(result_lines)
+                        if i > detailed_cat_start and ('Cis reads' in line or 'Trans reads' in line)
+                    ),
+                    -1
+                )
+                if detailed_cat_end != -1 and 'Cis reads' in result_lines[detailed_cat_end]:
+                    detailed_cat_end = next(
+                        (i for i, line in enumerate(result_lines) if i > detailed_cat_end and 'Trans reads' in line),
+                        -1
+                    )
+                    if detailed_cat_end != -1:
+                        detailed_cat_end += 1
+                elif detailed_cat_end != -1:
+                    detailed_cat_end += 1
+
+                end_idx = detailed_cat_end if detailed_cat_end != -1 else len(result_lines)
+                detailed_cat_lines = result_lines[detailed_cat_start:end_idx]
+                del result_lines[detailed_cat_start:end_idx]
+
+                qc_status_idx = next(
+                    (
+                        i for i, line in enumerate(qc_lines)
+                        if 'QC PASSED' in line or 'QC passed' in line or 'QC FAILED' in line or 'QC failed' in line
+                    ),
+                    -1
+                )
+                insert_idx = qc_status_idx if qc_status_idx != -1 else 0
+                qc_lines[insert_idx:insert_idx] = detailed_cat_lines
+
+            chimeric_idx = next((i for i, line in enumerate(result_lines) if 'Chimeric reads percentage:' in line), -1)
+            if chimeric_idx != -1:
+                chimeric_line = result_lines.pop(chimeric_idx)
+                qc_status_idx = next(
+                    (
+                        i for i, line in enumerate(qc_lines)
+                        if 'QC PASSED' in line or 'QC passed' in line or 'QC FAILED' in line or 'QC failed' in line
+                    ),
+                    -1
+                )
+                insert_idx = qc_status_idx if qc_status_idx != -1 else 0
+                qc_lines[insert_idx:insert_idx] = ['', chimeric_line, '']
+
+        idx_vv = next((i for i, s in enumerate(section_objs) if s['titleNorm'] == 'variant validation'), -1)
+        idx_qc = next((i for i, s in enumerate(section_objs) if s['titleNorm'] == 'quality control'), -1)
+        if idx_vv != -1:
+            if idx_qc == -1:
+                section_objs.append({
+                    'header': 'Quality control',
+                    'title': 'Quality control',
+                    'titleNorm': 'quality control',
+                    'lines': []
+                })
+                idx_qc = len(section_objs) - 1
+            section_objs[idx_qc]['lines'] = section_objs[idx_vv]['lines'] + section_objs[idx_qc]['lines']
+            section_objs.pop(idx_vv)
+
+        rank_map = {
+            'result': 0,
+            'results': 0,
+            'quality control': 1,
+            'quality control details': 2,
+            'variant calling': 3
+        }
+        section_objs.sort(key=lambda section: rank_map.get(section['titleNorm'], 100))
+
+        is_phasing_report = any(
+            any('Counting' in line and 'WhatsHap' in line and 'HapCUT2' in line for line in section['lines'])
+            for section in section_objs
+        )
+        has_result = any(section['titleNorm'] in ('result', 'results') for section in section_objs)
+
+        if not is_phasing_report and not has_result:
+            section_objs.insert(0, {
+                'header': 'Result',
+                'title': 'Result',
+                'titleNorm': 'result',
+                'lines': first_content_lines[:]
+            })
+            section_objs.sort(key=lambda section: rank_map.get(section['titleNorm'], 100))
+
+        idx_result_for_variant_move = next((i for i, s in enumerate(section_objs) if s['titleNorm'] in ('result', 'results')), -1)
+        idx_variant_calling = next((i for i, s in enumerate(section_objs) if s['titleNorm'] == 'variant calling'), -1)
+
+        if idx_result_for_variant_move != -1 and idx_variant_calling != -1:
+            result_lines = section_objs[idx_result_for_variant_move]['lines']
+            variant_lines = section_objs[idx_variant_calling]['lines']
+            variant_matching_results_idx = next(
+                (i for i, line in enumerate(variant_lines) if 'Variant Matching Results' in line),
+                -1
+            )
+            variant_matching_line = next(
+                (
+                    line for i, line in enumerate(variant_lines)
+                    if 'Variant Matching:' in line
+                    and not (
+                        variant_matching_results_idx != -1
+                        and variant_matching_results_idx < i <= variant_matching_results_idx + 2
+                    )
+                ),
+                ''
+            )
+            variant1_line = next((line for line in variant_lines if 'Variant 1:' in line), '')
+
+            if variant_matching_line or variant1_line:
+                passing_qc_idx = next((i for i, line in enumerate(result_lines) if 'Passing QC reads:' in line), -1)
+                insertion = ['']
+                if variant_matching_line:
+                    insertion.append(variant_matching_line)
+                if variant1_line:
+                    insertion.append(variant1_line)
+                insertion.append('')
+
+                if passing_qc_idx != -1:
+                    result_lines[passing_qc_idx + 1:passing_qc_idx + 1] = insertion
+                else:
+                    result_lines.extend(insertion)
+
+        for section in section_objs:
+            if section['titleNorm'] in ('result', 'results'):
+                content_text = '\n'.join(section['lines'])
+                if 'Counting' in content_text and 'WhatsHap' in content_text and 'HapCUT2' in content_text:
+                    section['lines'] = first_content_lines + [''] + section['lines']
+                elif not any(line.strip() for line in section['lines']):
+                    section['lines'] = first_content_lines[:]
+                break
+
+        wanted_titles = {'result', 'results', 'quality control', 'quality control details', 'variant calling'}
+        return [section for section in section_objs if section['titleNorm'] in wanted_titles]
+
+    def _line_to_pdf_paragraph(self, line, styles):
+        text = escape(line).replace('&lt;-', '<-')
+        text = re.sub(r'\b(Cis|Trans)\b', r'<b>\1</b>', text)
+
+        if line.startswith('*') and 'PASSED' in line:
+            style = styles['PassLine']
+        elif line.startswith('*'):
+            style = styles['FailLine']
+        elif line.endswith('<-'):
+            style = styles['GreenLine']
+        else:
+            style = styles['BodyLine']
+
+        return Paragraph(text, style)
+
+    def _generate_sample_report_pdf(self, report_data):
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=0.55 * inch,
+            leftMargin=0.55 * inch,
+            topMargin=0.55 * inch,
+            bottomMargin=0.55 * inch
+        )
+        base_styles = getSampleStyleSheet()
+        styles = {
+            'HeaderTitle': ParagraphStyle(
+                'HeaderTitle',
+                parent=base_styles['Title'],
+                textColor=colors.white,
+                fontSize=18,
+                leading=22,
+                alignment=TA_CENTER,
+                spaceAfter=4
+            ),
+            'HeaderSubTitle': ParagraphStyle(
+                'HeaderSubTitle',
+                parent=base_styles['Normal'],
+                textColor=colors.white,
+                fontSize=10,
+                leading=13,
+                alignment=TA_CENTER
+            ),
+            'SectionTitle': ParagraphStyle(
+                'SectionTitle',
+                parent=base_styles['Heading2'],
+                textColor=colors.HexColor('#0b4b63'),
+                fontSize=14,
+                leading=18,
+                spaceBefore=14,
+                spaceAfter=8
+            ),
+            'BodyLine': ParagraphStyle(
+                'BodyLine',
+                parent=base_styles['BodyText'],
+                fontSize=9,
+                leading=12,
+                spaceAfter=2
+            ),
+            'PassLine': ParagraphStyle(
+                'PassLine',
+                parent=base_styles['BodyText'],
+                textColor=colors.HexColor('#017a01'),
+                fontSize=9,
+                leading=12,
+                spaceAfter=2
+            ),
+            'FailLine': ParagraphStyle(
+                'FailLine',
+                parent=base_styles['BodyText'],
+                textColor=colors.red,
+                fontSize=9,
+                leading=12,
+                spaceAfter=2
+            ),
+            'GreenLine': ParagraphStyle(
+                'GreenLine',
+                parent=base_styles['BodyText'],
+                textColor=colors.HexColor('#1d8214'),
+                fontSize=9,
+                leading=12,
+                spaceAfter=2
+            )
+        }
+
+        header = Table(
+            [
+                [Paragraph(f"{escape(report_data['ampmap_version'])} Report", styles['HeaderTitle'])],
+                [Paragraph(f"Sample ID: {escape(report_data['displayed_sample_name'])}", styles['HeaderSubTitle'])]
+            ],
+            colWidths=[7.15 * inch]
+        )
+        header.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#0b6b8a')),
+            ('BOX', (0, 0), (-1, -1), 0, colors.HexColor('#0b6b8a')),
+            ('LEFTPADDING', (0, 0), (-1, -1), 14),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 14),
+            ('TOPPADDING', (0, 0), (-1, -1), 14),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 14),
+        ]))
+
+        story = [header, Spacer(1, 0.15 * inch)]
+
+        for section in self._build_sample_report_section_objects(report_data['report_content']):
+            story.append(Paragraph(escape(section['title']), styles['SectionTitle']))
+            lines = section['lines'] or ['No data available.']
+            for line in lines:
+                if not line.strip():
+                    story.append(Spacer(1, 0.08 * inch))
+                else:
+                    story.append(self._line_to_pdf_paragraph(line, styles))
+
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
     def init_routes(self):
         """Initialize Flask routes"""
         
@@ -299,64 +661,11 @@ class GUI_AmpMap:
         @self.app.route('/api/runs/<run_id>/samples/<sample_id>/report')
         def get_sample_report(run_id, sample_id):
             try:
-                result_dir = os.path.join(str(LOCAL_PATH), run_id, 'result')
-                
-                match = re.match(r"(.+)_b(\d{2})$", sample_id)
-                if not match:
-                    return jsonify({'error': 'Invalid sample ID format'}), 400
-                
-                original_sample_id, barcode = match.groups()
-                barcode_dir = os.path.join(result_dir, f'barcode{barcode}')
-                report_path = os.path.join(barcode_dir, f'{original_sample_id}_report.txt')
-                
-                if not os.path.exists(report_path):
-                    return jsonify({'error': 'Report not found'}), 404
-                    
-                with open(report_path, 'r') as f:
-                    report_content = f.read()
-                
-                # Extract AmpMap version from pipeline log
-                ampmap_version = "AmpMap"
-                try:
-                    log_files = glob.glob(os.path.join(result_dir, '*.log'))
-                    print(f"DEBUG: Found log files: {log_files}")  # Debug
-                    if log_files:
-                        with open(log_files[0], 'r') as log_file:
-                            lines = log_file.readlines()
-                            for i, line in enumerate(lines[:5]):  # Check first 5 lines
-                                print(f"DEBUG: Line {i}: {line.strip()}")  # Debug
-                                if 'AmpMap v' in line:
-                                    version_match = re.search(r'AmpMap v[\d.]+', line)
-                                    if version_match:
-                                        ampmap_version = version_match.group()
-                                        print(f"DEBUG: Found version: {ampmap_version}")  # Debug
-                                    break
-                except Exception as e:
-                    print(f"DEBUG: Version extraction failed: {e}")  # Debug
-                    pass  # Use default if version extraction fails
-                
-                print(f"DEBUG: Final ampmap_version: {ampmap_version}")  # Debug
-                
-                # Add version to the header instead of report content
-                report_lines = report_content.split('\n')
-                
-                # Find the first section header and modify it
-                for i, line in enumerate(report_lines):
-                    if 'Report for' in line:
-                        print(f"DEBUG: Original header: {line}")  # Debug
-                        # Extract sample name and add version to the right
-                        sample_match = re.search(r'Report for[:\s]*([^=]+)', line)
-                        if sample_match:
-                            sample_name = sample_match.group(1).strip()
-                            # Create new header with version on the right
-                            new_header = f"Report for: {sample_name}<span class='version'>Pipeline Version: {ampmap_version}</span>"
-                            report_lines[i] = new_header
-                            print(f"DEBUG: New header: {new_header}")  # Debug
-                        break
-                
-                report_content = '\n'.join(report_lines)
-                    
-                return report_content
+                report_data, status_code = self._get_sample_report_data(run_id, sample_id)
+                if status_code != 200:
+                    return jsonify(report_data), status_code
+
+                return report_data['report_content']
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
 
@@ -376,13 +685,28 @@ class GUI_AmpMap:
                     'HapCUT2': f'HapCUT2.log',
                     'WhatsHap': f'whatshap.log',
                     'Pipeline': f'pipeline.log',
-                    'MainPipeline': f'{run_id}.log'
+                    'MainPipeline': f'{run_id}.log',
+                    'report': f'{original_sample_id}_AmpMap_report.pdf'
                 }
                 
                 if file_type not in file_names:
                     return jsonify({'error': 'Invalid file type'}), 400
                     
                 file_name = file_names[file_type]
+
+                if file_type == 'report':
+                    report_data, status_code = self._get_sample_report_data(run_id, sample_id)
+                    if status_code != 200:
+                        return jsonify(report_data), status_code
+
+                    pdf_buffer = self._generate_sample_report_pdf(report_data)
+                    safe_file_name = re.sub(r'[^\w.\-]+', '_', file_name)
+                    return send_file(
+                        pdf_buffer,
+                        as_attachment=True,
+                        download_name=safe_file_name,
+                        mimetype='application/pdf'
+                    )
                 
                 if file_type == 'MainPipeline':
                     # Main pipeline log is in result directory

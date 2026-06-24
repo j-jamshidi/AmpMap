@@ -24,7 +24,7 @@ A containerized web interface for accessing and visualizing ONT amplicon analysi
 ### 1. Pull the Docker Image
 
 ```bash
-docker pull javadj/ampmap-gui:latest
+docker pull javadj/ampmap-gui:v1.1.1
 ```
 
 ### 2. Setup Configuration
@@ -63,7 +63,7 @@ version: '3.8'
 
 services:
   ampmap-gui:
-    image: javadj/ampmap-gui:latest
+    image: javadj/ampmap-gui:v1.1.1
     ports:
       - "5001:5001"
     volumes:
@@ -105,7 +105,7 @@ docker run -d \
   -e HOSTNAME=your.server.ip \
   -e USERNAME=ubuntu \
   -e BASE_PATH=/EBSDataDrive/ONT/Runs \
-  javadj/ampmap-gui:latest
+  javadj/ampmap-gui:v1.1.1
 ```
 
 ## Configuration
@@ -189,7 +189,7 @@ To build from source:
 ```bash
 git clone https://github.com/j-jamshidi/AmpMap.git
 cd AmpMap/GUI
-docker build -t ampmap-gui .
+docker build -t javadj/ampmap-gui:v1.1.1 .
 ```
 
 ## License
