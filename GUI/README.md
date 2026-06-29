@@ -11,6 +11,7 @@ A containerized web interface for accessing and visualizing ONT amplicon analysi
 - **Automated Data Monitoring**: Continuously monitors remote server for new analysis results
 - **Web Interface**: Clean, responsive web UI for browsing runs and samples
 - **Report Visualization**: Interactive display of analysis reports with tabbed sections
+- **PDF Report Export**: Download a formatted PDF report with header, footer, and page numbering
 - **File Downloads**: Direct download of XML files and log files
 - **Cross-Platform**: Works on Linux and macOS via Docker
 
@@ -24,7 +25,7 @@ A containerized web interface for accessing and visualizing ONT amplicon analysi
 ### 1. Pull the Docker Image
 
 ```bash
-docker pull javadj/ampmap-gui:v1.1.1
+docker pull javadj/ampmap-gui:v1.1.2
 ```
 
 ### 2. Setup Configuration
@@ -63,7 +64,7 @@ version: '3.8'
 
 services:
   ampmap-gui:
-    image: javadj/ampmap-gui:v1.1.1
+    image: javadj/ampmap-gui:v1.1.2
     ports:
       - "5001:5001"
     volumes:
@@ -105,7 +106,7 @@ docker run -d \
   -e HOSTNAME=your.server.ip \
   -e USERNAME=ubuntu \
   -e BASE_PATH=/EBSDataDrive/ONT/Runs \
-  javadj/ampmap-gui:v1.1.1
+  javadj/ampmap-gui:v1.1.2
 ```
 
 ## Configuration
@@ -189,7 +190,7 @@ To build from source:
 ```bash
 git clone https://github.com/j-jamshidi/AmpMap.git
 cd AmpMap/GUI
-docker build -t javadj/ampmap-gui:v1.1.1 .
+docker build -t javadj/ampmap-gui:v1.1.2 .
 ```
 
 ## License

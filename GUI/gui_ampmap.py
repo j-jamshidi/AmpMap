@@ -4,6 +4,7 @@ import glob
 import re
 import paramiko
 import shlex
+from datetime import datetime
 from html import escape
 from io import BytesIO
 from pathlib import Path
@@ -12,11 +13,12 @@ from os.path import basename, relpath
 from threading import Thread, Lock
 import logging
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.pdfgen import canvas as pdfcanvas
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 # Import configuration
 from config import HOSTNAME, USERNAME, BASE_PATH, LOCAL_PATH, PEM_PATH, FLASK_HOST, FLASK_PORT
@@ -303,12 +305,16 @@ class GUI_AmpMap:
                     )
                 break
 
+        mtime = os.path.getmtime(report_path)
+        analysis_datetime = datetime.fromtimestamp(mtime).strftime('%d %b %Y')
+
         return {
             'result_dir': result_dir,
             'original_sample_id': original_sample_id,
             'displayed_sample_name': displayed_sample_name,
             'barcode': barcode,
             'ampmap_version': ampmap_version,
+            'analysis_datetime': analysis_datetime,
             'report_content': '\n'.join(report_lines)
         }, 200
 
@@ -490,49 +496,54 @@ class GUI_AmpMap:
         wanted_titles = {'result', 'results', 'quality control', 'quality control details', 'variant calling'}
         return [section for section in section_objs if section['titleNorm'] in wanted_titles]
 
-    def _line_to_pdf_paragraph(self, line, styles):
+    def _line_to_pdf_paragraph(self, line, styles, suffix=''):
         text = escape(line).replace('&lt;-', '<-')
         text = re.sub(r'\b(Cis|Trans)\b', r'<b>\1</b>', text)
 
         if line.startswith('*') and 'PASSED' in line:
-            style = styles['PassLine']
+            style = styles[f'PassLine{suffix}']
         elif line.startswith('*'):
-            style = styles['FailLine']
+            style = styles[f'FailLine{suffix}']
         elif line.endswith('<-'):
-            style = styles['GreenLine']
+            style = styles[f'GreenLine{suffix}']
         else:
-            style = styles['BodyLine']
+            style = styles[f'BodyLine{suffix}']
 
         return Paragraph(text, style)
 
     def _generate_sample_report_pdf(self, report_data):
         buffer = BytesIO()
+        left_margin = 0.55 * inch
+        right_margin = 0.55 * inch
+        top_margin = 0.75 * inch
+        bottom_margin = 0.70 * inch
+
         doc = SimpleDocTemplate(
             buffer,
             pagesize=A4,
-            rightMargin=0.55 * inch,
-            leftMargin=0.55 * inch,
-            topMargin=0.55 * inch,
-            bottomMargin=0.55 * inch
+            rightMargin=right_margin,
+            leftMargin=left_margin,
+            topMargin=top_margin,
+            bottomMargin=bottom_margin
         )
         base_styles = getSampleStyleSheet()
         styles = {
-            'HeaderTitle': ParagraphStyle(
-                'HeaderTitle',
-                parent=base_styles['Title'],
-                textColor=colors.white,
-                fontSize=18,
-                leading=22,
-                alignment=TA_CENTER,
-                spaceAfter=4
-            ),
-            'HeaderSubTitle': ParagraphStyle(
-                'HeaderSubTitle',
+            'SampleIDHeading': ParagraphStyle(
+                'SampleIDHeading',
                 parent=base_styles['Normal'],
-                textColor=colors.white,
-                fontSize=10,
-                leading=13,
-                alignment=TA_CENTER
+                fontSize=13,
+                leading=17,
+                alignment=TA_RIGHT,
+                spaceAfter=2
+            ),
+            'AnalysisDate': ParagraphStyle(
+                'AnalysisDate',
+                parent=base_styles['Normal'],
+                fontSize=9,
+                leading=12,
+                alignment=TA_RIGHT,
+                textColor=colors.HexColor('#666666'),
+                spaceAfter=10
             ),
             'SectionTitle': ParagraphStyle(
                 'SectionTitle',
@@ -573,37 +584,113 @@ class GUI_AmpMap:
                 fontSize=9,
                 leading=12,
                 spaceAfter=2
+            ),
+            'BodyLineLg': ParagraphStyle(
+                'BodyLineLg',
+                parent=base_styles['BodyText'],
+                fontSize=10,
+                leading=13,
+                spaceAfter=2
+            ),
+            'PassLineLg': ParagraphStyle(
+                'PassLineLg',
+                parent=base_styles['BodyText'],
+                textColor=colors.HexColor('#017a01'),
+                fontSize=10,
+                leading=13,
+                spaceAfter=2
+            ),
+            'FailLineLg': ParagraphStyle(
+                'FailLineLg',
+                parent=base_styles['BodyText'],
+                textColor=colors.red,
+                fontSize=10,
+                leading=13,
+                spaceAfter=2
+            ),
+            'GreenLineLg': ParagraphStyle(
+                'GreenLineLg',
+                parent=base_styles['BodyText'],
+                textColor=colors.HexColor('#1d8214'),
+                fontSize=10,
+                leading=13,
+                spaceAfter=2
             )
         }
 
-        header = Table(
-            [
-                [Paragraph(f"{escape(report_data['ampmap_version'])} Report", styles['HeaderTitle'])],
-                [Paragraph(f"Sample ID: {escape(report_data['displayed_sample_name'])}", styles['HeaderSubTitle'])]
-            ],
-            colWidths=[7.15 * inch]
-        )
-        header.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#0b6b8a')),
-            ('BOX', (0, 0), (-1, -1), 0, colors.HexColor('#0b6b8a')),
-            ('LEFTPADDING', (0, 0), (-1, -1), 14),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 14),
-            ('TOPPADDING', (0, 0), (-1, -1), 14),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 14),
-        ]))
+        ampmap_version = report_data['ampmap_version']
+        sample_name = report_data['displayed_sample_name']
+        analysis_datetime = report_data.get('analysis_datetime', '')
+        page_width, page_height = A4
+        gray = colors.HexColor('#888888')
+        line_gray = colors.HexColor('#cccccc')
 
-        story = [header, Spacer(1, 0.15 * inch)]
+        class ReportCanvas(pdfcanvas.Canvas):
+            def __init__(self, *args, **kwargs):
+                pdfcanvas.Canvas.__init__(self, *args, **kwargs)
+                self._saved_page_states = []
+
+            def showPage(self):
+                self._saved_page_states.append(dict(self.__dict__))
+                self._startPage()
+
+            def save(self):
+                num_pages = len(self._saved_page_states)
+                for state in self._saved_page_states:
+                    self.__dict__.update(state)
+                    self._draw_header_footer(num_pages)
+                    pdfcanvas.Canvas.showPage(self)
+                pdfcanvas.Canvas.save(self)
+
+            def _draw_header_footer(self, page_count):
+                self.saveState()
+
+                # Header
+                header_y = page_height - 0.42 * inch
+                self.setFont('Helvetica', 8)
+                self.setFillColor(gray)
+                self.drawString(left_margin, header_y, f"{ampmap_version} Report")
+                self.drawRightString(page_width - right_margin, header_y, f"Sample ID: {sample_name}")
+                self.setStrokeColor(line_gray)
+                self.setLineWidth(0.5)
+                self.line(left_margin, header_y - 5, page_width - right_margin, header_y - 5)
+
+                # Footer
+                footer_y = 0.38 * inch
+                self.setFont('Helvetica', 8)
+                self.setFillColor(gray)
+                self.drawString(left_margin, footer_y, "NSW Health Pathology Randwick Genetics")
+                self.drawRightString(
+                    page_width - right_margin, footer_y,
+                    f"Page {self._pageNumber} of {page_count}"
+                )
+                self.setStrokeColor(line_gray)
+                self.line(left_margin, footer_y + 12, page_width - right_margin, footer_y + 12)
+
+                self.restoreState()
+
+        story = [
+            Paragraph(escape(sample_name), styles['SampleIDHeading']),
+            Paragraph(f"Analysis date: {escape(analysis_datetime)}", styles['AnalysisDate']),
+            Spacer(1, 0.10 * inch)
+        ]
 
         for section in self._build_sample_report_section_objects(report_data['report_content']):
+            title_norm = section['titleNorm']
+            is_large_section = title_norm in ('result', 'results', 'quality control')
+            suffix = 'Lg' if is_large_section else ''
+
             story.append(Paragraph(escape(section['title']), styles['SectionTitle']))
             lines = section['lines'] or ['No data available.']
             for line in lines:
+                if title_norm in ('result', 'results') and line.strip().startswith('Variant'):
+                    continue
                 if not line.strip():
                     story.append(Spacer(1, 0.08 * inch))
                 else:
-                    story.append(self._line_to_pdf_paragraph(line, styles))
+                    story.append(self._line_to_pdf_paragraph(line, styles, suffix))
 
-        doc.build(story)
+        doc.build(story, canvasmaker=ReportCanvas)
         buffer.seek(0)
         return buffer
 
